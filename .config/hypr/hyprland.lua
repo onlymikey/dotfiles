@@ -1,0 +1,6 @@
+require("config")
+require("startup")
+require("binds")
+require("rules")
+require("animations")
+require("gestures")
