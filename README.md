@@ -87,10 +87,3 @@ The installer is safe. If existing configurations are detected, it renames and b
 
 ---
 
-
-## Screenshots
-
-![Dashboard](./screenshots/1.png)
-![Notifications](./screenshots/2.png)
-![System Stats](./screenshots/3.png)
-
