@@ -1,0 +1,7 @@
+singleton Typography 1.0 Typography.qml
+singleton Icons 1.0 Icons.qml
+singleton Resources 1.0 Resources.qml
+singleton UIScale 1.0 UIScale.qml
+singleton Spacing 1.0 Spacing.qml
+singleton Radius 1.0 Radius.qml
+singleton Animations 1.0 Animations.qml

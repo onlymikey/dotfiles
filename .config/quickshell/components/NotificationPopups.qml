@@ -3,6 +3,7 @@ import Quickshell.Wayland
 import QtQuick
 import QtQuick.Layouts
 import QtQuick.Controls
+import "../theme"
 
 PanelWindow {
     id: popupsWindow
@@ -106,18 +107,22 @@ PanelWindow {
                     id: contentCard
                     width: parent.width
                     height: popupLayout.implicitHeight + 20
-                    radius: 12
+                    radius: Radius.large
                     color: Qt.rgba(0.05, 0.05, 0.05, 0.95)
                     border.color: root.walColor8
                     border.width: 1
 
                     MouseArea {
                         anchors.fill: parent
-                        enabled: hasDefaultAct
-                        cursorShape: enabled ? Qt.PointingHandCursor : Qt.ArrowCursor
-                        onClicked: {
-                            root.notificationService.invokeAction(notifId, "default")
-                            removePopup()
+                        acceptedButtons: Qt.LeftButton | Qt.RightButton
+                        cursorShape: hasDefaultAct ? Qt.PointingHandCursor : Qt.ArrowCursor
+                        onClicked: function(mouse) {
+                            if (mouse.button === Qt.RightButton) {
+                                removePopup()
+                            } else if (mouse.button === Qt.LeftButton && hasDefaultAct) {
+                                root.notificationService.invokeAction(notifId, "default")
+                                removePopup()
+                            }
                         }
                     }
 
@@ -125,23 +130,23 @@ PanelWindow {
                         id: popupLayout
                         anchors.fill: parent
                         anchors.margins: 10
-                        spacing: 8
+                        spacing: Spacing.sm
 
                         RowLayout {
                             Layout.fillWidth: true
-                            spacing: 8
+                            spacing: Spacing.sm
 
                             Text {
-                                text: model.appIcon ? model.appIcon : "󰵅"
-                                font.family: "JetBrainsMono Nerd Font"
-                                font.pixelSize: 14
+                                text: model.appIcon ? model.appIcon : Icons.notificationDefaultApp
+                                font.family: Typography.defaultFamily
+                                font.pixelSize: Typography.sizeBodyLarge
                                 color: root.walColor5
                             }
 
                             Text {
                                 text: model.appName
-                                font.family: "JetBrainsMono Nerd Font"
-                                font.pixelSize: 10
+                                font.family: Typography.defaultFamily
+                                font.pixelSize: Typography.sizeSmall
                                 font.bold: true
                                 color: root.walColor2
                                 Layout.fillWidth: true
@@ -154,9 +159,9 @@ PanelWindow {
                                 onClicked: removePopup()
                                 Text {
                                     anchors.centerIn: parent
-                                    text: "󰅖"
-                                    font.family: "JetBrainsMono Nerd Font"
-                                    font.pixelSize: 10
+                                    text: Icons.close
+                                    font.family: Typography.defaultFamily
+                                    font.pixelSize: Typography.sizeSmall
                                     color: root.walColor1
                                 }
                             }
@@ -180,8 +185,8 @@ PanelWindow {
 
                                 Text {
                                     text: model.summary
-                                    font.family: "JetBrainsMono Nerd Font"
-                                    font.pixelSize: 11
+                                    font.family: Typography.defaultFamily
+                                    font.pixelSize: Typography.sizeBodySmall
                                     font.bold: true
                                     color: root.walForeground
                                     elide: Text.ElideRight
@@ -190,8 +195,8 @@ PanelWindow {
 
                                 Text {
                                     text: model.body
-                                    font.family: "JetBrainsMono Nerd Font"
-                                    font.pixelSize: 9
+                                    font.family: Typography.defaultFamily
+                                    font.pixelSize: Typography.sizeCaption
                                     color: root.walColor8
                                     wrapMode: Text.Wrap
                                     maximumLineCount: 3
@@ -203,7 +208,7 @@ PanelWindow {
 
                         RowLayout {
                             visible: actionsList !== null && actionsList.count > 0
-                            spacing: 8
+                            spacing: Spacing.sm
                             Layout.fillWidth: true
 
                             Repeater {
@@ -213,12 +218,12 @@ PanelWindow {
                                     flat: true
                                     background: Rectangle {
                                         color: parent.hovered ? Qt.rgba(1,1,1,0.1) : Qt.rgba(1,1,1,0.05)
-                                        radius: 6
+                                        radius: Radius.small
                                     }
                                     contentItem: Text {
                                         text: parent.text
-                                        font.family: "JetBrainsMono Nerd Font"
-                                        font.pixelSize: 9
+                                        font.family: Typography.defaultFamily
+                                        font.pixelSize: Typography.sizeCaption
                                         color: root.walForeground
                                         horizontalAlignment: Text.AlignHCenter
                                     }

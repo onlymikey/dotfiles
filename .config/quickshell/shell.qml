@@ -3,20 +3,22 @@ import Quickshell
 import Quickshell.Io
 import Quickshell.Wayland
 import Quickshell.Hyprland
+import QtCore
 import QtQuick
 import QtQuick.Layouts
 import QtQuick.Controls
 import Qt5Compat.GraphicalEffects
 import "./components"
 import "./services"
+import "./theme"
 
 ShellRoot {
     id: root
 
-    property string configPath: Quickshell.env("HOME") + "/.config/quickshell"
-    property string homePath: Quickshell.env("HOME")
+    property string homePath: String(StandardPaths.writableLocation(StandardPaths.HomeLocation)).replace("file://", "")
+    property string configPath: String(StandardPaths.writableLocation(StandardPaths.ConfigLocation)).replace("file://", "") + "/quickshell"
     property string wallpaperPath: homePath + "/wallpapers"
-    property string cachePath: homePath + "/.cache"
+    property string cachePath: String(StandardPaths.writableLocation(StandardPaths.GenericCacheLocation)).replace("file://", "")
     property string statePath: configPath + "/state"
 
     property bool dashboardVisible: false
@@ -112,6 +114,8 @@ ShellRoot {
     property alias powerProfileService: powerProfileServiceObj
     property alias sensorService: sensorServiceObj
     property alias calendarService: calendarServiceObj
+    property alias brightnessService: brightnessServiceObj
+    property alias sessionService: sessionServiceObj
 
     BatteryService {
         id: batteryServiceObj
@@ -150,6 +154,14 @@ ShellRoot {
 
     CalendarService {
         id: calendarServiceObj
+    }
+
+    BrightnessService {
+        id: brightnessServiceObj
+    }
+
+    SessionService {
+        id: sessionServiceObj
     }
 
     PanelManager {
@@ -239,6 +251,8 @@ ShellRoot {
             currentWallProc.running = true
             thumbDirProc.running = true
             loadGifIndexProc.running = true
+            loadDndProc.running = true
+            loadSessionRestoreProc.running = true
         }
     }
 
@@ -249,6 +263,31 @@ ShellRoot {
             onRead: data => {
                 var idx = parseInt(data.trim())
                 root.savedGifIndex = isNaN(idx) ? 0 : idx
+            }
+        }
+    }
+
+    Process {
+        id: loadDndProc
+        command: ["bash", "-c", "cat '" + root.statePath + "/dnd' 2>/dev/null || echo 'false'"]
+        stdout: SplitParser {
+            onRead: data => {
+                var dndVal = data.trim() === "true"
+                root.notificationService.dnd = dndVal
+            }
+        }
+    }
+
+    Process {
+        id: loadSessionRestoreProc
+        command: ["bash", "-c", "cat '" + root.statePath + "/session_restore' 2>/dev/null || echo 'false'"]
+        stdout: SplitParser {
+            onRead: data => {
+                var enabledVal = data.trim() === "true"
+                root.sessionService.enabled = enabledVal
+                if (enabledVal) {
+                    root.sessionService.restoreSession()
+                }
             }
         }
     }
@@ -535,6 +574,20 @@ function reloadClipboard() {
                 var current = root.appList.slice()
                 current.push({ name: parts[0], exec: parts[1], icon: parts.length > 2 ? parts[2] : "" })
                 root.appList = current
+            }
+        }
+    }
+
+    Process {
+        id: appWatcherProc
+        command: ["python3", String(StandardPaths.writableLocation(StandardPaths.ConfigLocation)).replace("file://", "") + "/quickshell/services/parse_apps_watcher.py"]
+        running: true
+        stdout: SplitParser {
+            onRead: data => {
+                if (data.trim() === "change") {
+                    console.log("APPS_WATCHER: Detected change, reloading launcher application list...")
+                    root.reloadApps()
+                }
             }
         }
     }

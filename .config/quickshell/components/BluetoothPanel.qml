@@ -4,6 +4,7 @@ import Quickshell.Wayland
 import QtQuick
 import QtQuick.Layouts
 import QtQuick.Controls
+import "../theme"
 
 PanelWindow {
     id: btPanel
@@ -19,7 +20,7 @@ PanelWindow {
     focusable: true
     WlrLayershell.keyboardFocus: root.btVisible ? WlrKeyboardFocus.Exclusive : WlrKeyboardFocus.None
 
-    Behavior on margins.right { NumberAnimation { duration: 300; easing.type: Easing.OutCubic } }
+    Behavior on margins.right { NumberAnimation { duration: Animations.normal; easing.type: Easing.OutCubic } }
 
     Connections {
         target: root
@@ -63,23 +64,23 @@ PanelWindow {
         Rectangle {
             anchors.fill: parent
             color: Qt.rgba(root.walBackground.r, root.walBackground.g, root.walBackground.b, 0.7)
-            radius: 20
+            radius: Radius.panel
 
             ColumnLayout {
                 anchors.fill: parent
                 anchors.margins: 18
-                spacing: 12
+                spacing: Spacing.md
 
                 RowLayout {
                     Layout.fillWidth: true
                     Text {
                         text: {
                             var dev = root.bluetoothService.primaryConnectedAudioDevice
-                            return dev ? dev.icon : "󰂯"
+                            return dev ? dev.icon : Icons.bluetoothEnabled
                         }
                         color: root.walColor5
-                        font.pixelSize: 22
-                        font.family: "JetBrainsMono Nerd Font"
+                        font.pixelSize: Typography.sizeHeadingSmall
+                        font.family: Typography.defaultFamily
                     }
                     ColumnLayout {
                         spacing: 1
@@ -90,9 +91,9 @@ PanelWindow {
                                 return dev ? dev.name : "Bluetooth"
                             }
                             color: root.walColor5
-                            font.pixelSize: 14
+                            font.pixelSize: Typography.sizeBodyLarge
                             font.bold: true
-                            font.family: "JetBrainsMono Nerd Font"
+                            font.family: Typography.defaultFamily
                             elide: Text.ElideRight
                             Layout.fillWidth: true
                         }
@@ -103,25 +104,25 @@ PanelWindow {
                                 if (!dev) return ""
                                 var t = "Connected"
                                 if (dev.battery !== null) {
-                                    t += " • " + dev.battery + "%"
+                                    t += Icons.separatorDot + dev.battery + "%"
                                 }
                                 return t
                             }
                             color: root.walColor8
-                            font.pixelSize: 9
-                            font.family: "JetBrainsMono Nerd Font"
+                            font.pixelSize: Typography.sizeCaption
+                            font.family: Typography.defaultFamily
                         }
                     }
                     Rectangle {
                         width: 44
                         height: 24
-                        radius: 12
+                        radius: Radius.large
                         color: root.btEnabled ? root.walColor5 : Qt.rgba(0.3, 0.3, 0.3, 0.5)
                         Behavior on color { ColorAnimation { duration: 200 } }
                         Rectangle {
                             width: 20
                             height: 20
-                            radius: 10
+                            radius: Radius.medium
                             y: 2
                             x: root.btEnabled ? 22 : 2
                             color: root.walBackground
@@ -143,8 +144,8 @@ PanelWindow {
                 Text {
                     text: "Paired Devices"
                     color: root.walColor8
-                    font.pixelSize: 11
-                    font.family: "JetBrainsMono Nerd Font"
+                    font.pixelSize: Typography.sizeBodySmall
+                    font.family: Typography.defaultFamily
                     visible: root.btEnabled
                 }
 
@@ -152,19 +153,19 @@ PanelWindow {
                     Layout.fillWidth: true
                     Layout.preferredHeight: 180
                     color: Qt.rgba(0, 0, 0, 0.3)
-                    radius: 12
+                    radius: Radius.large
                     clip: true
                     visible: root.btEnabled
                     ListView {
                         anchors.fill: parent
                         anchors.margins: 6
-                        spacing: 4
+                        spacing: Spacing.xs
                         boundsBehavior: Flickable.StopAtBounds
                         model: root.btPairedDevices
                         delegate: Rectangle {
                             width: parent ? parent.width : 0
                             height: 48
-                            radius: 10
+                            radius: Radius.medium
                             color: btPairedMa.containsMouse ? Qt.rgba(1, 1, 1, 0.08) : "transparent"
                             Behavior on color { ColorAnimation { duration: 120 } }
                             RowLayout {
@@ -175,8 +176,8 @@ PanelWindow {
                                 Text {
                                     text: modelData.icon
                                     color: modelData.connected ? root.walColor2 : root.walColor8
-                                    font.pixelSize: 18
-                                    font.family: "JetBrainsMono Nerd Font"
+                                    font.pixelSize: Typography.sizeTitleMedium
+                                    font.family: Typography.defaultFamily
                                 }
                                 ColumnLayout {
                                     Layout.fillWidth: true
@@ -184,9 +185,9 @@ PanelWindow {
                                     Text {
                                         text: modelData.name
                                         color: modelData.connected ? root.walColor2 : root.walForeground
-                                        font.pixelSize: 12
+                                        font.pixelSize: Typography.sizeNormal
                                         font.bold: modelData.connected
-                                        font.family: "JetBrainsMono Nerd Font"
+                                        font.family: Typography.defaultFamily
                                         elide: Text.ElideRight
                                         Layout.fillWidth: true
                                     }
@@ -196,28 +197,28 @@ PanelWindow {
                                             if (modelData.connected) {
                                                 var t = "Connected"
                                                 if (modelData.battery !== null) {
-                                                    t += " • " + modelData.battery + "%"
+                                                    t += Icons.separatorDot + modelData.battery + "%"
                                                 }
                                                 return t
                                             }
                                             return "Paired"
                                         }
                                         color: root.walColor8
-                                        font.pixelSize: 9
-                                        font.family: "JetBrainsMono Nerd Font"
+                                        font.pixelSize: Typography.sizeCaption
+                                        font.family: Typography.defaultFamily
                                     }
                                 }
                                 Rectangle {
                                     width: 28
                                     height: 28
-                                    radius: 8
+                                    radius: Radius.mediumSmall
                                     color: btConnBtnMa.containsMouse ? Qt.rgba(1,1,1,0.1) : "transparent"
                                     Text {
                                         anchors.centerIn: parent
-                                        text: modelData.connected ? "󰅖" : "󰐕"
+                                        text: modelData.connected ? Icons.close : Icons.add
                                         color: modelData.connected ? root.walColor1 : root.walColor5
-                                        font.pixelSize: 12
-                                        font.family: "JetBrainsMono Nerd Font"
+                                        font.pixelSize: Typography.sizeNormal
+                                        font.family: Typography.defaultFamily
                                     }
                                     MouseArea {
                                         id: btConnBtnMa
@@ -235,14 +236,14 @@ PanelWindow {
                                 Rectangle {
                                     width: 28
                                     height: 28
-                                    radius: 8
+                                    radius: Radius.mediumSmall
                                     color: btForgetMa.containsMouse ? Qt.rgba(1,1,1,0.1) : "transparent"
                                     Text {
                                         anchors.centerIn: parent
-                                        text: "󰆴"
+                                        text: Icons.trash
                                         color: root.walColor8
-                                        font.pixelSize: 12
-                                        font.family: "JetBrainsMono Nerd Font"
+                                        font.pixelSize: Typography.sizeNormal
+                                        font.family: Typography.defaultFamily
                                     }
                                     MouseArea {
                                         id: btForgetMa
@@ -273,8 +274,8 @@ PanelWindow {
                         visible: root.btPairedDevices.length === 0
                         text: "No paired devices"
                         color: root.walColor8
-                        font.pixelSize: 12
-                        font.family: "JetBrainsMono Nerd Font"
+                        font.pixelSize: Typography.sizeNormal
+                        font.family: Typography.defaultFamily
                     }
                 }
 
@@ -284,21 +285,21 @@ PanelWindow {
                     Text {
                         text: "Available Devices"
                         color: root.walColor8
-                        font.pixelSize: 11
-                        font.family: "JetBrainsMono Nerd Font"
+                        font.pixelSize: Typography.sizeBodySmall
+                        font.family: Typography.defaultFamily
                     }
                     Item { Layout.fillWidth: true }
                     Rectangle {
                         width: 60
                         height: 24
-                        radius: 6
+                        radius: Radius.small
                         color: btScanBtnMa.containsMouse ? Qt.rgba(root.walColor5.r, root.walColor5.g, root.walColor5.b, 0.2) : Qt.rgba(0, 0, 0, 0.3)
                         Text {
                             anchors.centerIn: parent
                             text: root.btScanning ? "Scanning" : "Scan"
                             color: root.walColor5
-                            font.pixelSize: 10
-                            font.family: "JetBrainsMono Nerd Font"
+                            font.pixelSize: Typography.sizeSmall
+                            font.family: Typography.defaultFamily
                         }
                         MouseArea {
                             id: btScanBtnMa
@@ -318,19 +319,19 @@ PanelWindow {
                     Layout.fillWidth: true
                     Layout.fillHeight: true
                     color: Qt.rgba(0, 0, 0, 0.3)
-                    radius: 12
+                    radius: Radius.large
                     clip: true
                     visible: root.btEnabled
                     ListView {
                         anchors.fill: parent
                         anchors.margins: 6
-                        spacing: 4
+                        spacing: Spacing.xs
                         boundsBehavior: Flickable.StopAtBounds
                         model: root.btAvailableDevices
                         delegate: Rectangle {
                             width: parent ? parent.width : 0
                             height: 44
-                            radius: 10
+                            radius: Radius.medium
                             color: btAvailMa.containsMouse ? Qt.rgba(1, 1, 1, 0.08) : "transparent"
                             Behavior on color { ColorAnimation { duration: 120 } }
                             RowLayout {
@@ -341,14 +342,14 @@ PanelWindow {
                                 Text {
                                     text: modelData.icon
                                     color: root.walColor8
-                                    font.pixelSize: 16
-                                    font.family: "JetBrainsMono Nerd Font"
+                                    font.pixelSize: Typography.sizeTitleSmall
+                                    font.family: Typography.defaultFamily
                                 }
                                 Text {
                                     text: modelData.name
                                     color: root.walForeground
-                                    font.pixelSize: 12
-                                    font.family: "JetBrainsMono Nerd Font"
+                                    font.pixelSize: Typography.sizeNormal
+                                    font.family: Typography.defaultFamily
                                     elide: Text.ElideRight
                                     Layout.fillWidth: true
                                 }
@@ -356,15 +357,15 @@ PanelWindow {
                                     visible: modelData.signalStrength !== ""
                                     text: modelData.signalStrength
                                     color: root.walColor8
-                                    font.pixelSize: 10
-                                    font.family: "JetBrainsMono Nerd Font"
+                                    font.pixelSize: Typography.sizeSmall
+                                    font.family: Typography.defaultFamily
                                 }
                                 Text {
                                     visible: root.btConnectingMAC === modelData.mac
                                     text: "..."
                                     color: root.walColor8
-                                    font.pixelSize: 12
-                                    font.family: "JetBrainsMono Nerd Font"
+                                    font.pixelSize: Typography.sizeNormal
+                                    font.family: Typography.defaultFamily
                                 }
                             }
                             MouseArea {
@@ -382,16 +383,16 @@ PanelWindow {
                         visible: root.btAvailableDevices.length === 0 && !root.btScanning
                         text: "Press Scan to find devices"
                         color: root.walColor8
-                        font.pixelSize: 11
-                        font.family: "JetBrainsMono Nerd Font"
+                        font.pixelSize: Typography.sizeBodySmall
+                        font.family: Typography.defaultFamily
                     }
                     Text {
                         anchors.centerIn: parent
                         visible: root.btScanning
                         text: "Scanning..."
                         color: root.walColor8
-                        font.pixelSize: 11
-                        font.family: "JetBrainsMono Nerd Font"
+                        font.pixelSize: Typography.sizeBodySmall
+                        font.family: Typography.defaultFamily
                     }
                 }
 
@@ -404,8 +405,8 @@ PanelWindow {
                         anchors.centerIn: parent
                         text: "Bluetooth is off"
                         color: root.walColor8
-                        font.pixelSize: 13
-                        font.family: "JetBrainsMono Nerd Font"
+                        font.pixelSize: Typography.sizeBodyMedium
+                        font.family: Typography.defaultFamily
                     }
                 }
             }

@@ -2,6 +2,7 @@ import Quickshell
 import QtQuick
 import QtQuick.Layouts
 import QtQuick.Controls
+import "../../theme"
 
 DashboardModule {
     id: sensorModule
@@ -24,9 +25,9 @@ DashboardModule {
         Text {
             text: "Hardware Status"
             color: root.walForeground
-            font.pixelSize: 13
+            font.pixelSize: Typography.sizeBodyMedium
             font.bold: true
-            font.family: "JetBrainsMono Nerd Font"
+            font.family: Typography.defaultFamily
         }
 
         GridLayout {
@@ -38,108 +39,108 @@ DashboardModule {
             // CPU Temp
             Text {
                 visible: root.sensorService.cpuTemperature !== null
-                text: "  CPU Temp"
+                text: Icons.sensorCpu + "  CPU Temp"
                 color: root.walColor8
-                font.pixelSize: 11
-                font.family: "JetBrainsMono Nerd Font"
+                font.pixelSize: Typography.sizeBodySmall
+                font.family: Typography.defaultFamily
             }
             Text {
                 visible: root.sensorService.cpuTemperature !== null
                 text: root.sensorService.cpuTemperature + "°C"
                 color: root.walForeground
-                font.pixelSize: 11
+                font.pixelSize: Typography.sizeBodySmall
                 font.bold: true
-                font.family: "JetBrainsMono Nerd Font"
+                font.family: Typography.defaultFamily
                 Layout.alignment: Qt.AlignRight
             }
 
             // GPU Temp
             Text {
                 visible: root.sensorService.gpuTemperature !== null
-                text: "󰢮  GPU Temp"
+                text: Icons.sensorGpu + "  GPU Temp"
                 color: root.walColor8
-                font.pixelSize: 11
-                font.family: "JetBrainsMono Nerd Font"
+                font.pixelSize: Typography.sizeBodySmall
+                font.family: Typography.defaultFamily
             }
             Text {
                 visible: root.sensorService.gpuTemperature !== null
                 text: root.sensorService.gpuTemperature + "°C"
                 color: root.walForeground
-                font.pixelSize: 11
+                font.pixelSize: Typography.sizeBodySmall
                 font.bold: true
-                font.family: "JetBrainsMono Nerd Font"
+                font.family: Typography.defaultFamily
                 Layout.alignment: Qt.AlignRight
             }
 
             // SSD Temp
             Text {
                 visible: root.sensorService.ssdTemperature !== null
-                text: "󰋊  SSD Temp"
+                text: Icons.sensorSsd + "  SSD Temp"
                 color: root.walColor8
-                font.pixelSize: 11
-                font.family: "JetBrainsMono Nerd Font"
+                font.pixelSize: Typography.sizeBodySmall
+                font.family: Typography.defaultFamily
             }
             Text {
                 visible: root.sensorService.ssdTemperature !== null
                 text: root.sensorService.ssdTemperature + "°C"
                 color: root.walForeground
-                font.pixelSize: 11
+                font.pixelSize: Typography.sizeBodySmall
                 font.bold: true
-                font.family: "JetBrainsMono Nerd Font"
+                font.family: Typography.defaultFamily
                 Layout.alignment: Qt.AlignRight
             }
 
             // Fan Speed
             Text {
                 visible: root.sensorService.fanSpeed !== null
-                text: "󰈐  Fan Speed"
+                text: Icons.sensorFan + "  Fan Speed"
                 color: root.walColor8
-                font.pixelSize: 11
-                font.family: "JetBrainsMono Nerd Font"
+                font.pixelSize: Typography.sizeBodySmall
+                font.family: Typography.defaultFamily
             }
             Text {
                 visible: root.sensorService.fanSpeed !== null
                 text: root.sensorService.fanSpeed + " RPM"
                 color: root.walForeground
-                font.pixelSize: 11
+                font.pixelSize: Typography.sizeBodySmall
                 font.bold: true
-                font.family: "JetBrainsMono Nerd Font"
+                font.family: Typography.defaultFamily
                 Layout.alignment: Qt.AlignRight
             }
 
             // CPU Power
             Text {
                 visible: root.sensorService.cpuPower !== null
-                text: "  CPU Power"
+                text: Icons.sensorPower + "  CPU Power"
                 color: root.walColor8
-                font.pixelSize: 11
-                font.family: "JetBrainsMono Nerd Font"
+                font.pixelSize: Typography.sizeBodySmall
+                font.family: Typography.defaultFamily
             }
             Text {
                 visible: root.sensorService.cpuPower !== null
                 text: root.sensorService.cpuPower + " W"
                 color: root.walForeground
-                font.pixelSize: 11
+                font.pixelSize: Typography.sizeBodySmall
                 font.bold: true
-                font.family: "JetBrainsMono Nerd Font"
+                font.family: Typography.defaultFamily
                 Layout.alignment: Qt.AlignRight
             }
 
             // GPU Power
             Text {
                 visible: root.sensorService.gpuPower !== null
-                text: "  GPU Power"
+                text: Icons.sensorPower + "  GPU Power"
                 color: root.walColor8
-                font.pixelSize: 11
-                font.family: "JetBrainsMono Nerd Font"
+                font.pixelSize: Typography.sizeBodySmall
+                font.family: Typography.defaultFamily
             }
             Text {
                 visible: root.sensorService.gpuPower !== null
                 text: root.sensorService.gpuPower + " W"
                 color: root.walForeground
-                font.pixelSize: 11
+                font.pixelSize: Typography.sizeBodySmall
                 font.bold: true
-                font.family: "JetBrainsMono Nerd Font"
+                font.family: Typography.defaultFamily
                 Layout.alignment: Qt.AlignRight
             }
         }

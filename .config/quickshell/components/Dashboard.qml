@@ -5,6 +5,7 @@ import QtQuick
 import QtQuick.Layouts
 import QtQuick.Controls
 import "./modules"
+import "../theme"
 
 /**
  * Dashboard Panel - Modular Architecture
@@ -28,7 +29,7 @@ PanelWindow {
     color: "transparent"
     focusable: true
     WlrLayershell.keyboardFocus: root.dashboardVisible ? WlrKeyboardFocus.Exclusive : WlrKeyboardFocus.None
-    Behavior on margins.right { NumberAnimation { duration: 300; easing.type: Easing.OutCubic } }
+    Behavior on margins.right { NumberAnimation { duration: Animations.normal; easing.type: Easing.OutCubic } }
 
     Connections {
         target: root
@@ -60,50 +61,66 @@ PanelWindow {
         Rectangle {
             anchors.fill: parent
             color: Qt.rgba(root.walBackground.r, root.walBackground.g, root.walBackground.b, 0.7)
-            radius: 20
+            radius: Radius.panel
 
-            ColumnLayout {
+            Flickable {
+                id: flickable
                 anchors.fill: parent
                 anchors.margins: 20
-                spacing: 15
+                contentHeight: mainLayout.implicitHeight
+                clip: true
+                boundsBehavior: Flickable.StopAtBounds
+                flickableDirection: Flickable.VerticalFlick
 
-                /**
-                 * Module Instantiation
-                 *
-                 * All modules are instantiated directly in the layout.
-                 * Each module controls its own visibility via the 'available' property.
-                 * This ensures proper layout behavior in ColumnLayout.
-                 */
-                ProfileModule {
-                    visible: available
+                ScrollBar.vertical: ScrollBar {
+                    parent: flickable.parent
+                    anchors.right: flickable.right
+                    anchors.rightMargin: -10
+                    anchors.top: flickable.top
+                    anchors.bottom: flickable.bottom
+                    active: flickable.moving || flickable.flicking
+                    policy: ScrollBar.AsNeeded
                 }
 
-                PowerButtonsModule {
-                    visible: available
-                }
+                ColumnLayout {
+                    id: mainLayout
+                    width: parent.width
+                    spacing: 15
 
-                BatteryModule {
-                    visible: available
-                }
+                    /**
+                     * Module Instantiation
+                     *
+                     * All modules are instantiated directly in the layout.
+                     * Each module controls its own visibility via the 'available' property.
+                     * This ensures proper layout behavior in ColumnLayout.
+                     */
+                    ProfileModule {
+                        visible: available
+                    }
 
-                PowerProfileModule {
-                    visible: available
-                }
+                    PowerButtonsModule {
+                        visible: available
+                    }
 
-                SystemStatsModule {
-                    visible: available
-                }
+                    BatteryModule {
+                        visible: available
+                    }
 
-                SensorModule {
-                    visible: available
-                }
+                    PowerProfileModule {
+                        visible: available
+                    }
 
-                AudioModule {
-                    visible: available
-                }
+                    SystemStatsModule {
+                        visible: available
+                    }
 
-                ClockModule {
-                    visible: available
+                    AudioModule {
+                        visible: available
+                    }
+
+                    ClockModule {
+                        visible: available
+                    }
                 }
             }
         }

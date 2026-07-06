@@ -1,5 +1,6 @@
 import Quickshell
 import Quickshell.Io
+import QtCore
 import QtQuick
 
 Item {
@@ -70,7 +71,7 @@ Item {
     // Persistent Python subprocess querying NetworkManager D-Bus
     Process {
         id: netServiceProc
-        command: ["python3", "/home/mikey/.config/quickshell/services/parse_network.py"]
+        command: ["python3", String(StandardPaths.writableLocation(StandardPaths.ConfigLocation)).replace("file://", "") + "/quickshell/services/parse_network.py"]
         running: true
         stdout: SplitParser {
             onRead: data => {

@@ -1,5 +1,6 @@
 import Quickshell
 import Quickshell.Io
+import QtCore
 import QtQuick
 
 Item {
@@ -147,7 +148,7 @@ Item {
 
     Process {
         id: audioPollProc
-        command: ["python3", "/home/mikey/.config/quickshell/services/parse_audio.py"]
+        command: ["python3", String(StandardPaths.writableLocation(StandardPaths.ConfigLocation)).replace("file://", "") + "/quickshell/services/parse_audio.py"]
         stdout: SplitParser {
             onRead: data => {
                 try {

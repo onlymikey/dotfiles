@@ -4,6 +4,7 @@ import Quickshell.Wayland
 import QtQuick
 import QtQuick.Layouts
 import QtQuick.Controls
+import "../theme"
 
 PanelWindow {
     id: calPanel
@@ -17,7 +18,7 @@ PanelWindow {
     focusable: true
     WlrLayershell.keyboardFocus: root.calendarVisible ? WlrKeyboardFocus.Exclusive : WlrKeyboardFocus.None
 
-    Behavior on margins.top { NumberAnimation { duration: 300; easing.type: Easing.OutCubic } }
+    Behavior on margins.top { NumberAnimation { duration: Animations.normal; easing.type: Easing.OutCubic } }
 
     Connections {
         target: root
@@ -63,14 +64,14 @@ PanelWindow {
             anchors.horizontalCenter: parent.horizontalCenter
             anchors.top: parent.top
             color: Qt.rgba(root.walBackground.r, root.walBackground.g, root.walBackground.b, 0.75)
-            radius: 20
+            radius: Radius.panel
             border.color: Qt.rgba(1, 1, 1, 0.05)
             border.width: 1
 
             ColumnLayout {
                 anchors.fill: parent
                 anchors.margins: 18
-                spacing: 12
+                spacing: Spacing.md
 
                 // Header Navigation Row
                 RowLayout {
@@ -79,15 +80,15 @@ PanelWindow {
                     Rectangle {
                         width: 32
                         height: 32
-                        radius: 8
+                        radius: Radius.mediumSmall
                         color: prevMA.containsMouse ? Qt.rgba(1, 1, 1, 0.08) : "transparent"
                         
                         Text {
                             anchors.centerIn: parent
-                            text: "󰁍"
+                            text: Icons.chevronLeft
                             color: root.walColor2
-                            font.pixelSize: 14
-                            font.family: "JetBrainsMono Nerd Font"
+                            font.pixelSize: Typography.sizeBodyLarge
+                            font.family: Typography.defaultFamily
                         }
                         
                         MouseArea {
@@ -104,23 +105,23 @@ PanelWindow {
                         horizontalAlignment: Text.AlignHCenter
                         text: getWordMonth(root.calendarService.currentMonth) + " " + root.calendarService.currentYear
                         color: root.walForeground
-                        font.pixelSize: 13
+                        font.pixelSize: Typography.sizeBodyMedium
                         font.bold: true
-                        font.family: "JetBrainsMono Nerd Font"
+                        font.family: Typography.defaultFamily
                     }
 
                     Rectangle {
                         width: 32
                         height: 32
-                        radius: 8
+                        radius: Radius.mediumSmall
                         color: nextMA.containsMouse ? Qt.rgba(1, 1, 1, 0.08) : "transparent"
                         
                         Text {
                             anchors.centerIn: parent
-                            text: "󰁔"
+                            text: Icons.chevronRight
                             color: root.walColor2
-                            font.pixelSize: 14
-                            font.family: "JetBrainsMono Nerd Font"
+                            font.pixelSize: Typography.sizeBodyLarge
+                            font.family: Typography.defaultFamily
                         }
                         
                         MouseArea {
@@ -145,9 +146,9 @@ PanelWindow {
                             horizontalAlignment: Text.AlignHCenter
                             text: modelData
                             color: root.walColor8
-                            font.pixelSize: 10
+                            font.pixelSize: Typography.sizeSmall
                             font.bold: true
-                            font.family: "JetBrainsMono Nerd Font"
+                            font.family: Typography.defaultFamily
                         }
                     }
                 }
@@ -160,7 +161,7 @@ PanelWindow {
                     columnSpacing: 0
                     Layout.fillWidth: true
                     
-                    Behavior on opacity { NumberAnimation { duration: 150 } }
+                    Behavior on opacity { NumberAnimation { duration: Animations.fast } }
 
                     Repeater {
                         model: root.calendarService.monthGrid
@@ -188,9 +189,9 @@ PanelWindow {
                                 color: isToday 
                                     ? root.walBackground 
                                     : (isCurrentMonth ? root.walForeground : Qt.rgba(root.walForeground.r, root.walForeground.g, root.walForeground.b, 0.35))
-                                font.pixelSize: 10
+                                font.pixelSize: Typography.sizeSmall
                                 font.bold: isToday || isSelected
-                                font.family: "JetBrainsMono Nerd Font"
+                                font.family: Typography.defaultFamily
                             }
 
                             MouseArea {
@@ -218,34 +219,34 @@ PanelWindow {
                     Text {
                         text: "Events"
                         color: root.walColor8
-                        font.pixelSize: 11
+                        font.pixelSize: Typography.sizeBodySmall
                         font.bold: true
-                        font.family: "JetBrainsMono Nerd Font"
+                        font.family: Typography.defaultFamily
                     }
                     
                     Rectangle {
                         Layout.fillWidth: true
                         Layout.fillHeight: true
                         color: Qt.rgba(1, 1, 1, 0.02)
-                        radius: 10
+                        radius: Radius.medium
                         border.color: Qt.rgba(1, 1, 1, 0.04)
                         border.width: 1
                         
                         RowLayout {
                             anchors.centerIn: parent
-                            spacing: 8
+                            spacing: Spacing.sm
                             
                             Text {
-                                text: "󰵙"
+                                text: Icons.calendar
                                 color: root.walColor8
-                                font.pixelSize: 14
-                                font.family: "JetBrainsMono Nerd Font"
+                                font.pixelSize: Typography.sizeBodyLarge
+                                font.family: Typography.defaultFamily
                             }
                             Text {
                                 text: "No events scheduled"
                                 color: root.walColor8
-                                font.pixelSize: 10
-                                font.family: "JetBrainsMono Nerd Font"
+                                font.pixelSize: Typography.sizeSmall
+                                font.family: Typography.defaultFamily
                             }
                         }
                     }

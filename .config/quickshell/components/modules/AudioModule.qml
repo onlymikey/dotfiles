@@ -2,28 +2,28 @@ import Quickshell
 import Quickshell.Io
 import QtQuick
 import QtQuick.Layouts
+import "../../theme"
 
 DashboardModule {
     id: audioModule
     displayName: "Audio & Brightness"
     available: true
     implicitHeight: mainColumn.implicitHeight + 30
-    Behavior on implicitHeight { NumberAnimation { duration: 150; easing.type: Easing.OutCubic } }
+    Behavior on implicitHeight { NumberAnimation { duration: Animations.fast; easing.type: Easing.OutCubic } }
 
     property int volVal: root.audioService.volume
     property int micVal: root.audioService.sourceVolume
-    property int brightVal: 100
 
     function getDeviceIcon(name, isInput) {
         var lower = name.toLowerCase()
         if (isInput) {
-            if (lower.indexOf("usb") !== -1 || lower.indexOf("headset") !== -1 || lower.indexOf("headphone") !== -1) return "󰏫"
-            return "󰍬"
+            if (lower.indexOf("usb") !== -1 || lower.indexOf("headset") !== -1 || lower.indexOf("headphone") !== -1) return Icons.audioDeviceMicrophone
+            return Icons.audioDeviceInput
         } else {
-            if (lower.indexOf("hdmi") !== -1 || lower.indexOf("displayport") !== -1 || lower.indexOf("dp") !== -1) return "󰍹"
-            if (lower.indexOf("headset") !== -1 || lower.indexOf("headphone") !== -1 || lower.indexOf("auricular") !== -1 || lower.indexOf("bluetooth") !== -1) return "󰋋"
-            if (lower.indexOf("speaker") !== -1 || lower.indexOf("altavoz") !== -1) return "󰓃"
-            return "󰕾"
+            if (lower.indexOf("hdmi") !== -1 || lower.indexOf("displayport") !== -1 || lower.indexOf("dp") !== -1) return Icons.audioDeviceDisplay
+            if (lower.indexOf("headset") !== -1 || lower.indexOf("headphone") !== -1 || lower.indexOf("auricular") !== -1 || lower.indexOf("bluetooth") !== -1) return Icons.audioDeviceHeadphones
+            if (lower.indexOf("speaker") !== -1 || lower.indexOf("altavoz") !== -1) return Icons.audioDeviceSpeakers
+            return Icons.audioVolumeHigh
         }
     }
 
@@ -46,10 +46,10 @@ DashboardModule {
 
             Text {
                 width: 25
-                text: root.audioService.muted || audioModule.volVal == 0 ? "󰝟" : audioModule.volVal < 50 ? "󰖀" : "󰕾"
+                text: root.audioService.muted || audioModule.volVal == 0 ? Icons.audioMute : audioModule.volVal < 50 ? Icons.audioVolumeMedium : Icons.audioVolumeHigh
                 color: root.walColor4
-                font.pixelSize: 18
-                font.family: "JetBrainsMono Nerd Font"
+                font.pixelSize: Typography.sizeTitleMedium
+                font.family: Typography.defaultFamily
                 verticalAlignment: Text.AlignVCenter
                 height: 24
 
@@ -100,8 +100,8 @@ DashboardModule {
                 width: 40
                 text: audioModule.volVal + "%"
                 color: root.walColor8
-                font.pixelSize: 11
-                font.family: "JetBrainsMono Nerd Font"
+                font.pixelSize: Typography.sizeBodySmall
+                font.family: Typography.defaultFamily
                 horizontalAlignment: Text.AlignRight
                 verticalAlignment: Text.AlignVCenter
                 height: 24
@@ -119,20 +119,20 @@ DashboardModule {
             Text {
                 text: "Dispositivo de Salida"
                 color: root.walColor8
-                font.pixelSize: 11
-                font.family: "JetBrainsMono Nerd Font"
+                font.pixelSize: Typography.sizeBodySmall
+                font.family: Typography.defaultFamily
             }
 
             Rectangle {
                 id: outputDropdown
                 width: parent.width
                 height: expanded ? Math.min(180, 36 + (root.audioService.outputs.length * 30)) : 36
-                radius: 8
+                radius: Radius.mediumSmall
                 color: Qt.rgba(0, 0, 0, 0.3)
                 clip: true
                 border.color: expanded ? root.walColor4 : "transparent"
                 border.width: 1
-                Behavior on height { NumberAnimation { duration: 150; easing.type: Easing.OutCubic } }
+                Behavior on height { NumberAnimation { duration: Animations.fast; easing.type: Easing.OutCubic } }
 
                 property bool expanded: false
 
@@ -151,8 +151,8 @@ DashboardModule {
                             return def ? getDeviceIcon(def.name, false) + "  " + def.name : "Seleccionar dispositivo..."
                         }
                         color: root.walForeground
-                        font.pixelSize: 11
-                        font.family: "JetBrainsMono Nerd Font"
+                        font.pixelSize: Typography.sizeBodySmall
+                        font.family: Typography.defaultFamily
                         elide: Text.ElideRight
                     }
 
@@ -160,8 +160,8 @@ DashboardModule {
                         Layout.rightMargin: 12
                         text: outputDropdown.expanded ? "󰅃" : "󰅀"
                         color: root.walColor8
-                        font.pixelSize: 12
-                        font.family: "JetBrainsMono Nerd Font"
+                        font.pixelSize: Typography.sizeNormal
+                        font.family: Typography.defaultFamily
                     }
                 }
 
@@ -198,17 +198,17 @@ DashboardModule {
                                 Layout.fillWidth: true
                                 text: getDeviceIcon(modelData.name, false) + "  " + modelData.name
                                 color: modelData.isDefault ? root.walColor4 : root.walForeground
-                                font.pixelSize: 11
+                                font.pixelSize: Typography.sizeBodySmall
                                 font.bold: modelData.isDefault
-                                font.family: "JetBrainsMono Nerd Font"
+                                font.family: Typography.defaultFamily
                                 elide: Text.ElideRight
                             }
 
                             Text {
-                                text: "󰄬"
+                                text: Icons.check
                                 color: root.walColor4
-                                font.pixelSize: 12
-                                font.family: "JetBrainsMono Nerd Font"
+                                font.pixelSize: Typography.sizeNormal
+                                font.family: Typography.defaultFamily
                                 visible: modelData.isDefault
                             }
                         }
@@ -241,8 +241,8 @@ DashboardModule {
                 width: 25
                 text: root.audioService.sourceMuted || audioModule.micVal == 0 ? "󰍭" : "󰍬"
                 color: root.walColor13
-                font.pixelSize: 18
-                font.family: "JetBrainsMono Nerd Font"
+                font.pixelSize: Typography.sizeTitleMedium
+                font.family: Typography.defaultFamily
                 verticalAlignment: Text.AlignVCenter
                 height: 24
 
@@ -293,8 +293,8 @@ DashboardModule {
                 width: 40
                 text: audioModule.micVal + "%"
                 color: root.walColor8
-                font.pixelSize: 11
-                font.family: "JetBrainsMono Nerd Font"
+                font.pixelSize: Typography.sizeBodySmall
+                font.family: Typography.defaultFamily
                 horizontalAlignment: Text.AlignRight
                 verticalAlignment: Text.AlignVCenter
                 height: 24
@@ -312,20 +312,20 @@ DashboardModule {
             Text {
                 text: "Dispositivo de Entrada"
                 color: root.walColor8
-                font.pixelSize: 11
-                font.family: "JetBrainsMono Nerd Font"
+                font.pixelSize: Typography.sizeBodySmall
+                font.family: Typography.defaultFamily
             }
 
             Rectangle {
                 id: inputDropdown
                 width: parent.width
                 height: expanded ? Math.min(180, 36 + (root.audioService.inputs.length * 30)) : 36
-                radius: 8
+                radius: Radius.mediumSmall
                 color: Qt.rgba(0, 0, 0, 0.3)
                 clip: true
                 border.color: expanded ? root.walColor13 : "transparent"
                 border.width: 1
-                Behavior on height { NumberAnimation { duration: 150; easing.type: Easing.OutCubic } }
+                Behavior on height { NumberAnimation { duration: Animations.fast; easing.type: Easing.OutCubic } }
 
                 property bool expanded: false
 
@@ -344,8 +344,8 @@ DashboardModule {
                             return def ? getDeviceIcon(def.name, true) + "  " + def.name : "Seleccionar dispositivo..."
                         }
                         color: root.walForeground
-                        font.pixelSize: 11
-                        font.family: "JetBrainsMono Nerd Font"
+                        font.pixelSize: Typography.sizeBodySmall
+                        font.family: Typography.defaultFamily
                         elide: Text.ElideRight
                     }
 
@@ -353,8 +353,8 @@ DashboardModule {
                         Layout.rightMargin: 12
                         text: inputDropdown.expanded ? "󰅃" : "󰅀"
                         color: root.walColor8
-                        font.pixelSize: 12
-                        font.family: "JetBrainsMono Nerd Font"
+                        font.pixelSize: Typography.sizeNormal
+                        font.family: Typography.defaultFamily
                     }
                 }
 
@@ -391,17 +391,17 @@ DashboardModule {
                                 Layout.fillWidth: true
                                 text: getDeviceIcon(modelData.name, true) + "  " + modelData.name
                                 color: modelData.isDefault ? root.walColor13 : root.walForeground
-                                font.pixelSize: 11
+                                font.pixelSize: Typography.sizeBodySmall
                                 font.bold: modelData.isDefault
-                                font.family: "JetBrainsMono Nerd Font"
+                                font.family: Typography.defaultFamily
                                 elide: Text.ElideRight
                             }
 
                             Text {
-                                text: "󰄬"
+                                text: Icons.check
                                 color: root.walColor13
-                                font.pixelSize: 12
-                                font.family: "JetBrainsMono Nerd Font"
+                                font.pixelSize: Typography.sizeNormal
+                                font.family: Typography.defaultFamily
                                 visible: modelData.isDefault
                             }
                         }
@@ -429,13 +429,14 @@ DashboardModule {
         Row {
             width: parent.width
             spacing: 10
+            visible: root.brightnessService.supported
 
             Text {
                 width: 25
-                text: audioModule.brightVal < 30 ? "󰃞" : audioModule.brightVal < 70 ? "󰃟" : "󰃠"
+                text: root.brightnessService.brightness < 30 ? "󰃞" : root.brightnessService.brightness < 70 ? "󰃟" : "󰃠"
                 color: root.walColor13
-                font.pixelSize: 18
-                font.family: "JetBrainsMono Nerd Font"
+                font.pixelSize: Typography.sizeTitleMedium
+                font.family: Typography.defaultFamily
                 verticalAlignment: Text.AlignVCenter
                 height: 24
             }
@@ -449,7 +450,7 @@ DashboardModule {
                 color: Qt.rgba(0, 0, 0, 0.3)
 
                 Rectangle {
-                    width: parent.width * audioModule.brightVal / 100
+                    width: parent.width * root.brightnessService.brightness / 100
                     height: parent.height
                     radius: 4
                     color: root.walColor13
@@ -463,33 +464,25 @@ DashboardModule {
                     onClicked: function(mouse) {
                         var percent = Math.round((mouse.x / parent.width) * 100)
                         percent = Math.max(1, Math.min(100, percent))
-                        audioModule.brightVal = percent
-                        brightSetProc.command = ["bash", "-c", "brightnessctl set " + percent + "%"]
-                        brightSetProc.running = true
+                        root.brightnessService.setBrightness(percent)
                     }
 
                     onPositionChanged: function(mouse) {
                         if (pressed) {
                             var percent = Math.round((mouse.x / parent.width) * 100)
                             percent = Math.max(1, Math.min(100, percent))
-                            audioModule.brightVal = percent
-                            brightSetProc.command = ["bash", "-c", "brightnessctl set " + percent + "%"]
-                            brightSetProc.running = true
+                            root.brightnessService.setBrightness(percent)
                         }
                     }
-                }
-
-                Process {
-                    id: brightSetProc
                 }
             }
 
             Text {
                 width: 40
-                text: audioModule.brightVal + "%"
+                text: root.brightnessService.brightness + "%"
                 color: root.walColor8
-                font.pixelSize: 11
-                font.family: "JetBrainsMono Nerd Font"
+                font.pixelSize: Typography.sizeBodySmall
+                font.family: Typography.defaultFamily
                 horizontalAlignment: Text.AlignRight
                 verticalAlignment: Text.AlignVCenter
                 height: 24
@@ -497,25 +490,5 @@ DashboardModule {
         }
     }
 
-    Process {
-        id: brightProc
-        command: ["bash", "-c", "brightnessctl get | awk '{printf \"%.0f\", $1/max * 100}' 2>/dev/null || echo 100"]
-        stdout: SplitParser {
-            onRead: data => audioModule.brightVal = parseInt(data) || 100
-        }
-    }
 
-    /**
-     * Update every 2 seconds when dashboard is visible
-     */
-    Timer {
-        interval: 2000
-        running: root.dashboardVisible
-        repeat: true
-        triggeredOnStart: true
-
-        onTriggered: {
-            if (!brightProc.running) brightProc.running = true
-        }
-    }
 }

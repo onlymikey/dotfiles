@@ -1,5 +1,6 @@
 import QtQuick
 import QtQuick.Layouts
+import "../../theme"
 
 DashboardModule {
     displayName: "Clock"
@@ -16,8 +17,8 @@ DashboardModule {
             anchors.horizontalCenter: parent.horizontalCenter
             text: "12:00:00 AM"
             color: root.walColor5
-            font.pixelSize: 40
-            font.family: "JetBrainsMono Nerd Font"
+            font.pixelSize: Typography.sizeDisplayLarge
+            font.family: Typography.defaultFamily
         }
 
         Text {
@@ -25,8 +26,8 @@ DashboardModule {
             anchors.horizontalCenter: parent.horizontalCenter
             text: "01.01.2026, Friday"
             color: root.walForeground
-            font.pixelSize: 14
-            font.family: "JetBrainsMono Nerd Font"
+            font.pixelSize: Typography.sizeBodyLarge
+            font.family: Typography.defaultFamily
         }
     }
 

@@ -14,6 +14,7 @@ class SensorDaemon:
         self.gpu_power_path = None
         self.cpu_power_path = None
         self.fan_speed_path = None
+        self.gpu_busy_path = None
         
         self.has_nvidia = False
         self.prev_idle = 0.0
@@ -85,6 +86,14 @@ class SensorDaemon:
         if not self.gpu_temp_path and shutil.which('nvidia-smi'):
             self.has_nvidia = True
 
+        # GPU Busy detection (AMD)
+        self.gpu_busy_path = None
+        for i in range(5):
+            path = f"/sys/class/drm/card{i}/device/gpu_busy_percent"
+            if os.path.exists(path):
+                self.gpu_busy_path = path
+                break
+
     def init_cpu_times(self):
         try:
             with open('/proc/stat', 'r') as f:
@@ -150,21 +159,22 @@ class SensorDaemon:
 
     def get_nvidia_data(self):
         if not self.has_nvidia:
-            return None, None
+            return None, None, None
         try:
             res = subprocess.run([
                 "nvidia-smi",
-                "--query-gpu=temperature.gpu,power.draw",
+                "--query-gpu=temperature.gpu,power.draw,utilization.gpu",
                 "--format=csv,noheader,nounits"
             ], capture_output=True, text=True)
             if res.returncode == 0:
                 parts = res.stdout.strip().split(',')
                 temp = float(parts[0].strip())
                 power = float(parts[1].strip())
-                return temp, power
+                util = float(parts[2].strip())
+                return temp, power, util
         except:
             pass
-        return None, None
+        return None, None, None
 
     def collect(self):
         cpu_use = self.calculate_cpu_usage()
@@ -180,6 +190,7 @@ class SensorDaemon:
         
         gpu_temp = None
         gpu_power = None
+        gpu_usage = None
         
         if self.gpu_temp_path:
             gpu_t_raw = self.read_file_val(self.gpu_temp_path)
@@ -190,12 +201,17 @@ class SensorDaemon:
             # AMDGPU power is in microwatts
             gpu_power = int(gpu_p_raw / 1000000.0) if gpu_p_raw is not None else None
             
+        if self.gpu_busy_path:
+            gpu_usage = self.read_file_val(self.gpu_busy_path)
+            
         if self.has_nvidia:
-            nv_temp, nv_power = self.get_nvidia_data()
+            nv_temp, nv_power, nv_util = self.get_nvidia_data()
             if nv_temp is not None:
                 gpu_temp = int(nv_temp)
             if nv_power is not None:
                 gpu_power = int(nv_power)
+            if nv_util is not None:
+                gpu_usage = int(nv_util)
 
         # Read fans
         fan_raw = self.read_file_val(self.fan_speed_path)
@@ -213,11 +229,13 @@ class SensorDaemon:
         if fan_speed is not None: available.append("fanSpeed")
         if cpu_power is not None: available.append("cpuPower")
         if gpu_power is not None: available.append("gpuPower")
+        if gpu_usage is not None: available.append("gpuUsage")
 
         state = {
             "cpuUsage": cpu_use,
             "ramUsage": ram_use,
             "diskUsage": disk_use,
+            "gpuUsage": gpu_usage,
             "cpuTemperature": cpu_temp,
             "gpuTemperature": gpu_temp,
             "ssdTemperature": ssd_temp,

@@ -1,0 +1,7 @@
+.config/quickshell/state/session.json
+.config/quickshell/state/session_restore
+.config/quickshell/state/gif-index
+.config/quickshell/app_usage.json
+__pycache__/
+*.pyc
+*.log

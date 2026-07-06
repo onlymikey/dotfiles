@@ -1,6 +1,7 @@
 import QtQuick
 import QtQuick.Layouts
 import QtQuick.Controls
+import "../../theme"
 
 /**
  * Base component for all dashboard modules.

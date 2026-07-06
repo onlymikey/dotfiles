@@ -5,6 +5,7 @@ import QtQuick
 import QtQuick.Layouts
 import QtQuick.Controls
 import Qt5Compat.GraphicalEffects
+import "../theme"
 
 PanelWindow {
     id: musicPanel
@@ -17,10 +18,10 @@ PanelWindow {
     color: "transparent"
     focusable: true
     WlrLayershell.keyboardFocus: root.musicVisible ? WlrKeyboardFocus.Exclusive : WlrKeyboardFocus.None
-    Behavior on margins.top { NumberAnimation { duration: 300; easing.type: Easing.OutCubic } }
+    Behavior on margins.top { NumberAnimation { duration: Animations.normal; easing.type: Easing.OutCubic } }
 
     property string configPath: root.configPath
-    property string gifPath: configPath + "/assets/gifs"
+    property string gifPath: Resources.gifsPath
     property string playerStatus: "Stopped"
     property string trackTitle: ""
     property string trackArtist: ""
@@ -183,7 +184,7 @@ FocusScope {
 
         Column {
             anchors.horizontalCenter: parent.horizontalCenter
-            spacing: 8
+            spacing: Spacing.sm
 
             Rectangle {
                 width: 400
@@ -205,9 +206,9 @@ FocusScope {
                         Text {
                             text: musicPanel.trackTitle || "Nothing is playing"
                             color: root.walColor5
-                            font.pixelSize: 15
+                            font.pixelSize: Typography.sizeNormalLarge
                             font.bold: true
-                            font.family: "JetBrainsMono Nerd Font"
+                            font.family: Typography.defaultFamily
                             Layout.fillWidth: true
                             elide: Text.ElideRight
                         }
@@ -215,8 +216,8 @@ FocusScope {
                         Text {
                             text: musicPanel.trackArtist || ""
                             color: root.walForeground
-                            font.pixelSize: 12
-                            font.family: "JetBrainsMono Nerd Font"
+                            font.pixelSize: Typography.sizeNormal
+                            font.family: Typography.defaultFamily
                             opacity: 0.7
                             Layout.fillWidth: true
                             elide: Text.ElideRight
@@ -227,14 +228,14 @@ FocusScope {
 
                         RowLayout {
                             Layout.fillWidth: true
-                            spacing: 8
+                            spacing: Spacing.sm
                             visible: musicPanel.hasTrack
 
                             Text {
                                 text: musicPanel.formatTime(musicPanel.position)
                                 color: root.walColor8
-                                font.pixelSize: 10
-                                font.family: "JetBrainsMono Nerd Font"
+                                font.pixelSize: Typography.sizeSmall
+                                font.family: Typography.defaultFamily
                             }
 
                             Rectangle {
@@ -266,28 +267,28 @@ FocusScope {
                             Text {
                                 text: musicPanel.formatTime(musicPanel.length)
                                 color: root.walColor8
-                                font.pixelSize: 10
-                                font.family: "JetBrainsMono Nerd Font"
+                                font.pixelSize: Typography.sizeSmall
+                                font.family: Typography.defaultFamily
                             }
                         }
 
                         Row {
                             Layout.alignment: Qt.AlignHCenter
-                            spacing: 12
+                            spacing: Spacing.md
                             opacity: musicPanel.hasTrack ? 1.0 : 0.5
 
                             Rectangle {
                                 width: 32
                                 height: 32
-                                radius: 8
+                                radius: Radius.mediumSmall
                                 color: prevMa.containsMouse ? Qt.rgba(1,1,1,0.1) : "transparent"
 
                                 Text {
                                     anchors.centerIn: parent
-                                    text: "󰒮"
+                                    text: Icons.mediaPrev
                                     color: root.walForeground
-                                    font.pixelSize: 16
-                                    font.family: "JetBrainsMono Nerd Font"
+                                    font.pixelSize: Typography.sizeTitleSmall
+                                    font.family: Typography.defaultFamily
                                 }
 
                                 MouseArea {
@@ -302,15 +303,15 @@ FocusScope {
                             Rectangle {
                                 width: 40
                                 height: 40
-                                radius: 20
+                                radius: Radius.panel
                                 color: root.walColor5
 
                                 Text {
                                     anchors.centerIn: parent
-                                    text: musicPanel.playerStatus === "Playing" ? "󰏤" : "󰐊"
+                                    text: musicPanel.playerStatus === "Playing" ? Icons.mediaPause : Icons.mediaPlay
                                     color: root.walBackground
-                                    font.pixelSize: 18
-                                    font.family: "JetBrainsMono Nerd Font"
+                                    font.pixelSize: Typography.sizeTitleMedium
+                                    font.family: Typography.defaultFamily
                                 }
 
                                 MouseArea {
@@ -323,15 +324,15 @@ FocusScope {
                             Rectangle {
                                 width: 32
                                 height: 32
-                                radius: 8
+                                radius: Radius.mediumSmall
                                 color: nextMa.containsMouse ? Qt.rgba(1,1,1,0.1) : "transparent"
 
                                 Text {
                                     anchors.centerIn: parent
-                                    text: "󰒭"
+                                    text: Icons.mediaNext
                                     color: root.walForeground
-                                    font.pixelSize: 16
-                                    font.family: "JetBrainsMono Nerd Font"
+                                    font.pixelSize: Typography.sizeTitleSmall
+                                    font.family: Typography.defaultFamily
                                 }
 
                                 MouseArea {
@@ -384,16 +385,16 @@ FocusScope {
                             anchors.rightMargin: 5
                             width: 24
                             height: 24
-                            radius: 12
+                            radius: Radius.large
                             color: gifEditMa.containsMouse ? Qt.rgba(1,1,1,0.2) : Qt.rgba(0,0,0,0.3)
-                            Behavior on color { ColorAnimation { duration: 150 } }
+                            Behavior on color { ColorAnimation { duration: Animations.fast } }
 
                             Text {
                                 anchors.centerIn: parent
-                                text: "󰏫"
+                                text: Icons.mediaGif
                                 color: root.walForeground
-                                font.pixelSize: 12
-                                font.family: "JetBrainsMono Nerd Font"
+                                font.pixelSize: Typography.sizeNormal
+                                font.family: Typography.defaultFamily
                             }
 
                             MouseArea {
@@ -440,7 +441,7 @@ FocusScope {
                     transparentBorder: true
                     horizontalOffset: 0
                     verticalOffset: 4
-                    radius: 16
+                    radius: Radius.extraLarge
                     samples: 17
                     color: Qt.rgba(0,0,0,0.35)
                 }
@@ -458,9 +459,9 @@ FocusScope {
                         Text {
                             text: "Select Animation"
                             color: root.walColor5
-                            font.pixelSize: 12
+                            font.pixelSize: Typography.sizeNormal
                             font.bold: true
-                            font.family: "JetBrainsMono Nerd Font"
+                            font.family: Typography.defaultFamily
                             Layout.fillWidth: true
                         }
 
@@ -468,8 +469,8 @@ FocusScope {
                             visible: musicPanel.gifFiles.length > 0
                             text: (musicPanel.previewGifIndex + 1) + " / " + musicPanel.gifFiles.length
                             color: root.walColor8
-                            font.pixelSize: 10
-                            font.family: "JetBrainsMono Nerd Font"
+                            font.pixelSize: Typography.sizeSmall
+                            font.family: Typography.defaultFamily
                             opacity: 0.6
                         }
 
@@ -478,17 +479,17 @@ FocusScope {
                         Rectangle {
                             width: 20
                             height: 20
-                            radius: 10
+                            radius: Radius.medium
                             color: dropCloseMa.containsMouse ? Qt.rgba(root.walColor1.r, root.walColor1.g, root.walColor1.b, 0.5) : Qt.rgba(1,1,1,0.08)
-                            Behavior on color { ColorAnimation { duration: 150 } }
+                            Behavior on color { ColorAnimation { duration: Animations.fast } }
 
                             Text {
                                 anchors.centerIn: parent
-                                text: "󰅖"
+                                text: Icons.close
                                 color: dropCloseMa.containsMouse ? root.walColor1 : root.walForeground
-                                font.pixelSize: 10
-                                font.family: "JetBrainsMono Nerd Font"
-                                Behavior on color { ColorAnimation { duration: 150 } }
+                                font.pixelSize: Typography.sizeSmall
+                                font.family: Typography.defaultFamily
+                                Behavior on color { ColorAnimation { duration: Animations.fast } }
                             }
 
                             MouseArea {
@@ -514,7 +515,7 @@ FocusScope {
                         Rectangle {
                             id: previewContainer
                             anchors.fill: parent
-                            radius: 12
+                            radius: Radius.large
                             color: Qt.rgba(0,0,0,0.2)
                             border.color: Qt.rgba(1,1,1,0.08)
                             border.width: 1
@@ -555,8 +556,8 @@ FocusScope {
                                 visible: musicPanel.gifFiles.length === 0 && musicPanel.gifsLoaded
                                 text: "No gifs found"
                                 color: root.walColor8
-                                font.pixelSize: 11
-                                font.family: "JetBrainsMono Nerd Font"
+                                font.pixelSize: Typography.sizeBodySmall
+                                font.family: Typography.defaultFamily
                                 opacity: 0.5
                             }
 
@@ -565,8 +566,8 @@ FocusScope {
                                 visible: !musicPanel.gifsLoaded && musicPanel.gifSelectorOpen
                                 text: "Loading..."
                                 color: root.walColor8
-                                font.pixelSize: 11
-                                font.family: "JetBrainsMono Nerd Font"
+                                font.pixelSize: Typography.sizeBodySmall
+                                font.family: Typography.defaultFamily
                                 opacity: 0.5
                             }
 
@@ -577,7 +578,7 @@ FocusScope {
                                 visible: musicPanel.gifFiles.length > 0 && musicPanel.gifsLoaded
                                 width: nameLabel.implicitWidth + 16
                                 height: 20
-                                radius: 10
+                                radius: Radius.medium
                                 color: Qt.rgba(0,0,0,0.6)
 
                                 Text {
@@ -585,8 +586,8 @@ FocusScope {
                                     anchors.centerIn: parent
                                     text: (musicPanel.gifFiles.length > 0 && musicPanel.previewGifIndex < musicPanel.gifFiles.length) ? musicPanel.gifFileName(musicPanel.gifFiles[musicPanel.previewGifIndex]) : ""
                                     color: root.walForeground
-                                    font.pixelSize: 9
-                                    font.family: "JetBrainsMono Nerd Font"
+                                    font.pixelSize: Typography.sizeCaption
+                                    font.family: Typography.defaultFamily
                                     opacity: 0.9
                                 }
                             }
@@ -596,26 +597,26 @@ FocusScope {
                     RowLayout {
                         Layout.fillWidth: true
                         Layout.preferredHeight: 32
-                        spacing: 8
+                        spacing: Spacing.sm
 
                         Rectangle {
                             Layout.preferredWidth: 36
                             Layout.preferredHeight: 32
-                            radius: 8
+                            radius: Radius.mediumSmall
                             color: prevGifMa.containsMouse ? Qt.rgba(root.walColor5.r, root.walColor5.g, root.walColor5.b, 0.25) : Qt.rgba(1,1,1,0.08)
                             border.color: prevGifMa.containsMouse ? Qt.rgba(root.walColor5.r, root.walColor5.g, root.walColor5.b, 0.4) : Qt.rgba(1,1,1,0.05)
                             border.width: 1
                             opacity: musicPanel.gifFiles.length > 1 ? 1.0 : 0.3
-                            Behavior on color { ColorAnimation { duration: 150 } }
-                            Behavior on border.color { ColorAnimation { duration: 150 } }
+                            Behavior on color { ColorAnimation { duration: Animations.fast } }
+                            Behavior on border.color { ColorAnimation { duration: Animations.fast } }
 
                             Text {
                                 anchors.centerIn: parent
-                                text: "󰅁"
+                                text: Icons.chevronDown
                                 color: prevGifMa.containsMouse ? root.walColor5 : root.walForeground
-                                font.pixelSize: 16
-                                font.family: "JetBrainsMono Nerd Font"
-                                Behavior on color { ColorAnimation { duration: 150 } }
+                                font.pixelSize: Typography.sizeTitleSmall
+                                font.family: Typography.defaultFamily
+                                Behavior on color { ColorAnimation { duration: Animations.fast } }
                             }
 
                             MouseArea {
@@ -631,21 +632,21 @@ FocusScope {
                         Rectangle {
                             Layout.preferredWidth: 36
                             Layout.preferredHeight: 32
-                            radius: 8
+                            radius: Radius.mediumSmall
                             color: nextGifMa.containsMouse ? Qt.rgba(root.walColor5.r, root.walColor5.g, root.walColor5.b, 0.25) : Qt.rgba(1,1,1,0.08)
                             border.color: nextGifMa.containsMouse ? Qt.rgba(root.walColor5.r, root.walColor5.g, root.walColor5.b, 0.4) : Qt.rgba(1,1,1,0.05)
                             border.width: 1
                             opacity: musicPanel.gifFiles.length > 1 ? 1.0 : 0.3
-                            Behavior on color { ColorAnimation { duration: 150 } }
-                            Behavior on border.color { ColorAnimation { duration: 150 } }
+                            Behavior on color { ColorAnimation { duration: Animations.fast } }
+                            Behavior on border.color { ColorAnimation { duration: Animations.fast } }
 
                             Text {
                                 anchors.centerIn: parent
-                                text: "󰅂"
+                                text: Icons.chevronUp
                                 color: nextGifMa.containsMouse ? root.walColor5 : root.walForeground
-                                font.pixelSize: 16
-                                font.family: "JetBrainsMono Nerd Font"
-                                Behavior on color { ColorAnimation { duration: 150 } }
+                                font.pixelSize: Typography.sizeTitleSmall
+                                font.family: Typography.defaultFamily
+                                Behavior on color { ColorAnimation { duration: Animations.fast } }
                             }
 
                             MouseArea {
@@ -663,7 +664,7 @@ FocusScope {
                         Rectangle {
                             Layout.preferredWidth: 85
                             Layout.preferredHeight: 32
-                            radius: 8
+                            radius: Radius.mediumSmall
                             color: {
                                 if (musicPanel.isApplyingGif) return Qt.rgba(1,1,1,0.03)
                                 if (musicPanel.previewGifIndex === musicPanel.currentGifIndex) return Qt.rgba(1,1,1,0.05)
@@ -675,25 +676,25 @@ FocusScope {
                                 return applyGifMa.containsMouse ? root.walColor5 : Qt.rgba(root.walColor5.r, root.walColor5.g, root.walColor5.b, 0.4)
                             }
                             border.width: 1
-                            Behavior on color { ColorAnimation { duration: 150 } }
-                            Behavior on border.color { ColorAnimation { duration: 150 } }
+                            Behavior on color { ColorAnimation { duration: Animations.fast } }
+                            Behavior on border.color { ColorAnimation { duration: Animations.fast } }
 
                             Text {
                                 anchors.centerIn: parent
                                 text: {
                                     if (musicPanel.isApplyingGif) return "Applying..."
-                                    if (musicPanel.previewGifIndex === musicPanel.currentGifIndex) return "󰄬 Current"
-                                    return "󰸞 Apply"
+                                    if (musicPanel.previewGifIndex === musicPanel.currentGifIndex) return Icons.check + " Current"
+                                    return Icons.apply + " Apply"
                                 }
                                 color: {
                                     if (musicPanel.isApplyingGif) return Qt.rgba(root.walForeground.r, root.walForeground.g, root.walForeground.b, 0.4)
                                     if (musicPanel.previewGifIndex === musicPanel.currentGifIndex) return Qt.rgba(root.walForeground.r, root.walForeground.g, root.walForeground.b, 0.3)
                                     return applyGifMa.pressed ? root.walBackground : root.walColor5
                                 }
-                                font.pixelSize: 11
+                                font.pixelSize: Typography.sizeBodySmall
                                 font.bold: true
-                                font.family: "JetBrainsMono Nerd Font"
-                                Behavior on color { ColorAnimation { duration: 150 } }
+                                font.family: Typography.defaultFamily
+                                Behavior on color { ColorAnimation { duration: Animations.fast } }
                             }
 
                             MouseArea {
@@ -711,7 +712,7 @@ FocusScope {
                         Layout.fillWidth: true
                         Layout.preferredHeight: 22
                         color: Qt.rgba(0,0,0,0.2)
-                        radius: 6
+                        radius: Radius.small
 
                         RowLayout {
                             anchors.fill: parent
@@ -719,26 +720,26 @@ FocusScope {
                             anchors.rightMargin: 10
 
                             Text {
-                                text: "←→ nav"
+                                text: Icons.listNavHorizontal + " nav"
                                 color: root.walColor8
-                                font.pixelSize: 9
-                                font.family: "JetBrainsMono Nerd Font"
+                                font.pixelSize: Typography.sizeCaption
+                                font.family: Typography.defaultFamily
                                 opacity: 0.6
                             }
                             Item { Layout.fillWidth: true }
                             Text {
-                                text: "↵ apply"
+                                text: Icons.keyboardEnter + " apply"
                                 color: root.walColor8
-                                font.pixelSize: 9
-                                font.family: "JetBrainsMono Nerd Font"
+                                font.pixelSize: Typography.sizeCaption
+                                font.family: Typography.defaultFamily
                                 opacity: 0.6
                             }
                             Item { Layout.fillWidth: true }
                             Text {
                                 text: "esc close"
                                 color: root.walColor8
-                                font.pixelSize: 9
-                                font.family: "JetBrainsMono Nerd Font"
+                                font.pixelSize: Typography.sizeCaption
+                                font.family: Typography.defaultFamily
                                 opacity: 0.6
                             }
                         }

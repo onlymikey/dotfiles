@@ -1,5 +1,6 @@
 import Quickshell
 import Quickshell.Io
+import QtCore
 import QtQuick
 
 Item {
@@ -9,6 +10,7 @@ Item {
     property int cpuUsage: 0
     property int ramUsage: 0
     property int diskUsage: 0
+    property var gpuUsage: null
 
     property var cpuTemperature: null
     property var gpuTemperature: null
@@ -24,7 +26,7 @@ Item {
 
     Process {
         id: sensorServiceProc
-        command: ["python3", "/home/mikey/.config/quickshell/services/parse_sensors.py"]
+        command: ["python3", String(StandardPaths.writableLocation(StandardPaths.ConfigLocation)).replace("file://", "") + "/quickshell/services/parse_sensors.py"]
         running: service.pollingEnabled
         
         stdout: SplitParser {
@@ -34,6 +36,7 @@ Item {
                     service.cpuUsage = state.cpuUsage
                     service.ramUsage = state.ramUsage
                     service.diskUsage = state.diskUsage
+                    service.gpuUsage = state.gpuUsage
                     
                     service.cpuTemperature = state.cpuTemperature
                     service.gpuTemperature = state.gpuTemperature

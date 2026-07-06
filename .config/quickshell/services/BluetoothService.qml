@@ -1,5 +1,6 @@
 import Quickshell
 import Quickshell.Io
+import QtCore
 import QtQuick
 
 Item {
@@ -114,7 +115,7 @@ Item {
     // Persistent background process listening to D-Bus signals
     Process {
         id: btServiceProc
-        command: ["python3", "/home/mikey/.config/quickshell/services/parse_bluetooth.py"]
+        command: ["python3", String(StandardPaths.writableLocation(StandardPaths.ConfigLocation)).replace("file://", "") + "/quickshell/services/parse_bluetooth.py"]
         running: true
         stdout: SplitParser {
             onRead: data => {

@@ -4,6 +4,7 @@ import QtQuick
 import QtQuick.Layouts
 import QtQuick.Controls
 import Qt5Compat.GraphicalEffects
+import "../../theme"
 import "../"
 
 DashboardModule {
@@ -46,7 +47,7 @@ DashboardModule {
                     anchors.centerIn: parent
                     width: 68
                     height: 68
-                    source: "file://" + root.configPath + "/assets/pfps/pfp.jpg"
+                    source: Resources.defaultPfp
                     fillMode: Image.PreserveAspectCrop
                     smooth: true
                     cache: false
@@ -59,7 +60,7 @@ DashboardModule {
                     function reload() {
                         reloadTrigger++
                         source = ""
-                        source = "file://" + root.configPath + "/assets/pfps/pfp.jpg?" + reloadTrigger
+                        source = Resources.defaultPfp + "?" + reloadTrigger
                     }
                 }
 
@@ -92,10 +93,10 @@ DashboardModule {
 
                     Text {
                         anchors.centerIn: parent
-                        text: "󰏫"
+                        text: Icons.profileEdit
                         color: root.walBackground
-                        font.pixelSize: 12
-                        font.family: "JetBrainsMono Nerd Font"
+                        font.pixelSize: Typography.sizeNormal
+                        font.family: Typography.defaultFamily
                     }
                 }
 
@@ -119,17 +120,17 @@ DashboardModule {
                 Text {
                     text: Quickshell.env("USER")
                     color: root.walColor5
-                    font.pixelSize: 26
+                    font.pixelSize: Typography.sizeHeadingLarge
                     font.bold: true
-                    font.family: "JetBrainsMono Nerd Font"
+                    font.family: Typography.defaultFamily
                 }
 
                 Text {
                     id: uptimeText
                     text: "up ..."
                     color: root.walForeground
-                    font.pixelSize: 12
-                    font.family: "JetBrainsMono Nerd Font"
+                    font.pixelSize: Typography.sizeNormal
+                    font.family: Typography.defaultFamily
                 }
             }
         }
@@ -138,20 +139,20 @@ DashboardModule {
             Layout.fillWidth: true
             Layout.fillHeight: true
             color: Qt.rgba(0, 0, 0, 0.3)
-            radius: 10
+            radius: Radius.medium
             visible: pfpPickerOpen
 
             ColumnLayout {
                 anchors.fill: parent
                 anchors.margins: 10
-                spacing: 8
+                spacing: Spacing.sm
 
                 Text {
                     text: "Choose Avatar"
                     color: root.walColor5
-                    font.pixelSize: 12
+                    font.pixelSize: Typography.sizeNormal
                     font.bold: true
-                    font.family: "JetBrainsMono Nerd Font"
+                    font.family: Typography.defaultFamily
                     Layout.alignment: Qt.AlignHCenter
                 }
 
@@ -184,7 +185,7 @@ DashboardModule {
                                     color: "transparent"
                                     border.width: 2
                                     border.color: thumbMa.containsMouse ? root.walColor13 : root.walColor5
-                                    Behavior on border.color { ColorAnimation { duration: 150 } }
+                                    Behavior on border.color { ColorAnimation { duration: Animations.fast } }
                                 }
 
                                 Image {
@@ -237,7 +238,7 @@ DashboardModule {
 
     Process {
         id: pfpListProc
-        command: ["bash", "-c", "find " + root.configPath + "/assets/pfps -maxdepth 1 -type f \\( -iname '*.jpg' -o -iname '*.png' -o -iname '*.gif' \\) ! -name 'pfp.jpg' | sort"]
+        command: ["bash", "-c", "find '" + Resources.pfpsPath + "' -maxdepth 1 -type f \\( -iname '*.jpg' -o -iname '*.png' -o -iname '*.gif' \\) ! -name 'pfp.jpg' | sort"]
         stdout: SplitParser {
             onRead: data => {
                 var file = data.trim()
@@ -253,7 +254,7 @@ DashboardModule {
     Process {
         id: setPfpProc
         property string selFile: ""
-        command: ["bash", "-c", "cp '" + selFile + "' " + root.configPath + "/assets/pfps/pfp.jpg"]
+        command: ["bash", "-c", "cp '" + selFile + "' '" + Resources.pfpsPath + "/pfp.jpg'"]
         onExited: {
             pfpImage.reload()
             pfpPickerOpen = false

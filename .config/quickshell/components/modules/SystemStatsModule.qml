@@ -1,6 +1,7 @@
 import Quickshell
 import QtQuick
 import QtQuick.Layouts
+import "../../theme"
 
 DashboardModule {
     id: statsModule
@@ -14,7 +15,7 @@ DashboardModule {
 
     Row {
         anchors.centerIn: parent
-        spacing: 30
+        spacing: (gpuStat.visible) ? 10 : 30
 
         CircularStat {
             label: "CPU"
@@ -39,6 +40,17 @@ DashboardModule {
             value: statsModule.diskVal
             extraInfo: root.sensorService.ssdTemperature !== null ? root.sensorService.ssdTemperature + "°C" : ""
         }
+
+        CircularStat {
+            id: gpuStat
+            label: "GPU"
+            icon: ""
+            barColor: root.walColor2
+            value: root.sensorService.gpuUsage !== null ? root.sensorService.gpuUsage : 0
+            displayValue: root.sensorService.gpuUsage !== null ? root.sensorService.gpuUsage + "%" : "N/A"
+            extraInfo: root.sensorService.gpuTemperature !== null ? root.sensorService.gpuTemperature + "°C" : ""
+            visible: root.sensorService.gpuUsage !== null
+        }
     }
 
     component CircularStat: Item {
@@ -46,8 +58,9 @@ DashboardModule {
         property string icon
         property color barColor
         property int value
+        property string displayValue: value + "%"
         property string extraInfo: ""
-        width: 90
+        width: 80
         height: 110
 
         Column {
@@ -88,16 +101,16 @@ DashboardModule {
                         anchors.horizontalCenter: parent.horizontalCenter
                         text: icon
                         color: barColor
-                        font.pixelSize: 16
-                        font.family: "JetBrainsMono Nerd Font"
+                        font.pixelSize: Typography.sizeTitleSmall
+                        font.family: Typography.defaultFamily
                     }
 
                     Text {
                         anchors.horizontalCenter: parent.horizontalCenter
-                        text: value + "%"
+                        text: displayValue
                         color: root.walForeground
-                        font.pixelSize: 14
-                        font.family: "JetBrainsMono Nerd Font"
+                        font.pixelSize: Typography.sizeBodyLarge
+                        font.family: Typography.defaultFamily
                     }
                 }
             }
@@ -110,8 +123,8 @@ DashboardModule {
                     anchors.horizontalCenter: parent.horizontalCenter
                     text: label
                     color: root.walColor8
-                    font.pixelSize: 11
-                    font.family: "JetBrainsMono Nerd Font"
+                    font.pixelSize: Typography.sizeBodySmall
+                    font.family: Typography.defaultFamily
                 }
 
                 Text {
@@ -119,8 +132,8 @@ DashboardModule {
                     anchors.horizontalCenter: parent.horizontalCenter
                     text: extraInfo
                     color: root.walColor8
-                    font.pixelSize: 9
-                    font.family: "JetBrainsMono Nerd Font"
+                    font.pixelSize: Typography.sizeCaption
+                    font.family: Typography.defaultFamily
                 }
             }
         }

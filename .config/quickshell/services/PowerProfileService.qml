@@ -1,5 +1,6 @@
 import Quickshell
 import Quickshell.Io
+import QtCore
 import QtQuick
 
 Item {
@@ -31,7 +32,7 @@ Item {
     // Persistent Python subprocess querying power profiles
     Process {
         id: powerServiceProc
-        command: ["python3", "/home/mikey/.config/quickshell/services/parse_power.py"]
+        command: ["python3", String(StandardPaths.writableLocation(StandardPaths.ConfigLocation)).replace("file://", "") + "/quickshell/services/parse_power.py"]
         running: true
         stdout: SplitParser {
             onRead: data => {

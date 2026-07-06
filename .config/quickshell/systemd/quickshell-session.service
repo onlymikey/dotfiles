@@ -1,0 +1,12 @@
+[Unit]
+Description=Quickshell Session Restore Capture Service
+Before=graphical-session.target
+
+[Service]
+Type=oneshot
+RemainAfterExit=yes
+ExecStart=/bin/true
+ExecStop=/usr/bin/python3 %h/.config/quickshell/services/session_helper.py capture
+
+[Install]
+WantedBy=graphical-session.target

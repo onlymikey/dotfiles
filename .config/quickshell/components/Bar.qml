@@ -6,6 +6,7 @@ import Quickshell.Services.SystemTray
 import QtQuick
 import QtQuick.Layouts
 import QtQuick.Controls
+import "../theme"
 
 PanelWindow {
     id: bar
@@ -31,7 +32,7 @@ PanelWindow {
     property real mediaLength: 0
     property int volumePercent: root.audioService.volume
     property bool volumeMuted: root.audioService.muted
-    property string volumeStr: volumeMuted ? "󰝟 mute" : (volumePercent > 50 ? "󰕾" : (volumePercent > 0 ? "󰖀" : "󰕿")) + " " + volumePercent + "%"
+    property string volumeStr: volumeMuted ? Icons.audioMute + " mute" : (volumePercent > 50 ? Icons.audioVolumeHigh : (volumePercent > 0 ? Icons.audioVolumeMedium : Icons.audioVolumeLow)) + " " + volumePercent + "%"
     property bool wifiConnected: root.networkService.connectedNetwork !== null
     property string wifiSSID: root.networkService.connectedNetwork ? root.networkService.connectedNetwork.ssid : ""
     property int wifiStrength: root.networkService.connectedNetwork ? root.networkService.connectedNetwork.signal : 0
@@ -48,8 +49,8 @@ PanelWindow {
         id: chargingPulseAnim
         running: bar.batteryCharging
         loops: Animation.Infinite
-        NumberAnimation { target: bar; property: "chargingPulse"; to: 0.3; duration: 800; easing.type: Easing.InOutSine }
-        NumberAnimation { target: bar; property: "chargingPulse"; to: 1; duration: 800; easing.type: Easing.InOutSine }
+        NumberAnimation { target: bar; property: "chargingPulse"; to: 0.3; duration: Animations.slow; easing.type: Easing.InOutSine }
+        NumberAnimation { target: bar; property: "chargingPulse"; to: 1; duration: Animations.slow; easing.type: Easing.InOutSine }
     }
 
     SequentialAnimation {
@@ -99,7 +100,7 @@ PanelWindow {
                 target: wsHighlight
                 property: "highlightOpacity"
                 to: 1
-                duration: 300
+                duration: Animations.normal
                 easing.type: Easing.OutCubic
             }
             PropertyAnimation {
@@ -107,7 +108,7 @@ PanelWindow {
                 property: "highlightScale"
                 from: 0.9
                 to: 1.0
-                duration: 300
+                duration: Animations.normal
                 easing.type: Easing.OutBack
                 easing.overshoot: 1.5
             }
@@ -273,20 +274,20 @@ PanelWindow {
             anchors.topMargin: 4
             width: tooltipText.implicitWidth + 16
             height: tooltipText.implicitHeight + 8
-            radius: 6
+            radius: Radius.small
             color: Qt.rgba(0, 0, 0, 0.85)
             opacity: visible ? 1 : 0
             z: 1000
 
-            Behavior on opacity { NumberAnimation { duration: 150; easing.type: Easing.OutCubic } }
+            Behavior on opacity { NumberAnimation { duration: Animations.fast; easing.type: Easing.OutCubic } }
 
             Text {
                 id: tooltipText
                 anchors.centerIn: parent
                 text: notchRoot.tooltip
                 color: root.walForeground
-                font.pixelSize: 10
-                font.family: "JetBrainsMono Nerd Font"
+                font.pixelSize: Typography.sizeSmall
+                font.family: Typography.defaultFamily
             }
         }
 
@@ -318,10 +319,10 @@ PanelWindow {
 
                     Text {
                         anchors.centerIn: parent
-                        text: "󰣇"
+                        text: Icons.arch
                         color: root.walColor1
-                        font.pixelSize: 16
-                        font.family: "JetBrainsMono Nerd Font"
+                        font.pixelSize: Typography.sizeTitleSmall
+                        font.family: Typography.defaultFamily
                     }
                 }
 
@@ -350,7 +351,7 @@ PanelWindow {
                 id: workspacesNotch
                 width: wsContainer.width + 20
 
-                Behavior on width { NumberAnimation { duration: 300; easing.type: Easing.OutCubic } }
+                Behavior on width { NumberAnimation { duration: Animations.normal; easing.type: Easing.OutCubic } }
 
                 Item {
                     anchors.fill: parent
@@ -381,7 +382,7 @@ PanelWindow {
 
                             Behavior on x {
                                 NumberAnimation {
-                                    duration: 300
+                                    duration: Animations.normal
                                     easing.type: Easing.OutCubic
                                 }
                             }
@@ -397,7 +398,7 @@ PanelWindow {
                         Row {
                             id: wsRow
                             anchors.centerIn: parent
-                            spacing: 4
+                            spacing: Spacing.xs
 
                             Repeater {
                                 id: wsRepeater
@@ -437,9 +438,9 @@ PanelWindow {
                                         anchors.centerIn: parent
                                         text: modelData.name || modelData.id.toString()
                                         color: isActive ? root.walBackground : (isHovered ? root.walForeground : Qt.rgba(root.walForeground.r, root.walForeground.g, root.walForeground.b, 0.5))
-                                        font.pixelSize: 10
+                                        font.pixelSize: Typography.sizeSmall
                                         font.bold: true
-                                        font.family: "JetBrainsMono Nerd Font"
+                                        font.family: Typography.defaultFamily
 
                                         Behavior on color { ColorAnimation { duration: 200; easing.type: Easing.OutCubic } }
                                     }
@@ -475,7 +476,7 @@ PanelWindow {
         Row {
             anchors.horizontalCenter: parent.horizontalCenter
             anchors.top: parent.top
-            spacing: 8
+            spacing: Spacing.sm
 
             // Clock Notch
             Notch {
@@ -484,7 +485,7 @@ PanelWindow {
                 hovered: clockMA.containsMouse
                 tooltip: Qt.formatDateTime(new Date(), "dddd, MMMM d, yyyy")
 
-                Behavior on width { NumberAnimation { duration: 300; easing.type: Easing.OutCubic } }
+                Behavior on width { NumberAnimation { duration: Animations.normal; easing.type: Easing.OutCubic } }
 
                 Item {
                     anchors.fill: parent
@@ -498,18 +499,18 @@ PanelWindow {
                             id: clockTime
                             text: Qt.formatDateTime(new Date(), "hh:mm AP")
                             color: root.walColor5
-                            font.pixelSize: 11
+                            font.pixelSize: Typography.sizeBodySmall
                             font.bold: true
-                            font.family: "JetBrainsMono Nerd Font"
+                            font.family: Typography.defaultFamily
                         }
 
                         Text {
                             id: clockSeparator
-                            text: " • "
+                            text: Icons.separatorDot
                             color: root.walColor5
-                            font.pixelSize: 11
+                            font.pixelSize: Typography.sizeBodySmall
                             font.bold: true
-                            font.family: "JetBrainsMono Nerd Font"
+                            font.family: Typography.defaultFamily
                             
                             // Animate layout width
                             property real targetWidth: !mediaNotch.visible ? implicitWidth : 0
@@ -517,7 +518,7 @@ PanelWindow {
                             clip: true
                             opacity: !mediaNotch.visible ? 1.0 : 0.0
 
-                            Behavior on width { NumberAnimation { duration: 300; easing.type: Easing.OutCubic } }
+                            Behavior on width { NumberAnimation { duration: Animations.normal; easing.type: Easing.OutCubic } }
                             Behavior on opacity { NumberAnimation { duration: 200 } }
                         }
 
@@ -525,9 +526,9 @@ PanelWindow {
                             id: clockDate
                             text: Qt.formatDateTime(new Date(), "dd MMM")
                             color: root.walColor5
-                            font.pixelSize: 11
+                            font.pixelSize: Typography.sizeBodySmall
                             font.bold: true
-                            font.family: "JetBrainsMono Nerd Font"
+                            font.family: Typography.defaultFamily
                             
                             // Animate layout width
                             property real targetWidth: !mediaNotch.visible ? implicitWidth : 0
@@ -535,7 +536,7 @@ PanelWindow {
                             clip: true
                             opacity: !mediaNotch.visible ? 1.0 : 0.0
 
-                            Behavior on width { NumberAnimation { duration: 300; easing.type: Easing.OutCubic } }
+                            Behavior on width { NumberAnimation { duration: Animations.normal; easing.type: Easing.OutCubic } }
                             Behavior on opacity { NumberAnimation { duration: 200 } }
                         }
                     }
@@ -601,7 +602,7 @@ PanelWindow {
                                         antialiasing: true
 
                                         Behavior on height { NumberAnimation { duration: 60; easing.type: Easing.OutQuad } }
-                                        Behavior on opacity { NumberAnimation { duration: 300; easing.type: Easing.OutCubic } }
+                                        Behavior on opacity { NumberAnimation { duration: Animations.normal; easing.type: Easing.OutCubic } }
                                     }
                                 }
                             }
@@ -610,12 +611,12 @@ PanelWindow {
                                 anchors.verticalCenter: parent.verticalCenter
                                 text: bar.mediaText
                                 color: root.walColor2
-                                font.pixelSize: 10
+                                font.pixelSize: Typography.sizeSmall
                                 font.bold: true
-                                font.family: "JetBrainsMono Nerd Font"
+                                font.family: Typography.defaultFamily
                                 opacity: bar.mediaClass === "playing" ? 1.0 : 0.6
 
-                                Behavior on opacity { NumberAnimation { duration: 300; easing.type: Easing.OutCubic } }
+                                Behavior on opacity { NumberAnimation { duration: Animations.normal; easing.type: Easing.OutCubic } }
                             }
                         }
 
@@ -682,10 +683,10 @@ PanelWindow {
 
                         Text {
                             anchors.verticalCenter: parent.verticalCenter
-                            text: root.notificationService.dnd ? "󰂛" : (root.notificationService.unreadCount > 0 ? "󰂚" : "󰂚")
+                            text: root.notificationService.dnd ? Icons.notificationDnd : (root.notificationService.unreadCount > 0 ? Icons.notificationActive : Icons.notificationActive)
                             color: root.notificationService.dnd ? root.walColor1 : (root.notificationService.unreadCount > 0 ? root.walColor2 : root.walColor5)
-                            font.pixelSize: 13
-                            font.family: "JetBrainsMono Nerd Font"
+                            font.pixelSize: Typography.sizeBodyMedium
+                            font.family: Typography.defaultFamily
                         }
 
                         Text {
@@ -693,9 +694,9 @@ PanelWindow {
                             visible: root.notificationService.unreadCount > 0
                             text: root.notificationService.unreadCount.toString()
                             color: root.walColor2
-                            font.pixelSize: 10
+                            font.pixelSize: Typography.sizeSmall
                             font.bold: true
-                            font.family: "JetBrainsMono Nerd Font"
+                            font.family: Typography.defaultFamily
                         }
                     }
 
@@ -735,7 +736,7 @@ PanelWindow {
                 Row {
                     id: trayRow
                     anchors.centerIn: parent
-                    spacing: 8
+                    spacing: Spacing.sm
 
                     Repeater {
                         model: root.trayService.items
@@ -843,7 +844,7 @@ PanelWindow {
                                     id: tooltipRect
                                     width: tooltipText.implicitWidth + 16
                                     height: tooltipText.implicitHeight + 8
-                                    radius: 6
+                                    radius: Radius.small
                                     color: Qt.rgba(0, 0, 0, 0.85)
                                     border.color: root.walColor8
                                     border.width: 1
@@ -853,8 +854,8 @@ PanelWindow {
                                         anchors.centerIn: parent
                                         text: modelData.tooltipTitle || modelData.title || ""
                                         color: root.walForeground
-                                        font.pixelSize: 10
-                                        font.family: "JetBrainsMono Nerd Font"
+                                        font.pixelSize: Typography.sizeSmall
+                                        font.family: Typography.defaultFamily
                                     }
                                 }
                             }
@@ -880,7 +881,7 @@ PanelWindow {
                     Row {
                         id: batteryRow
                         anchors.centerIn: parent
-                        spacing: 8
+                        spacing: Spacing.sm
 
                         Item {
                             width: 20
@@ -951,20 +952,20 @@ PanelWindow {
 
                             Text {
                                 anchors.centerIn: batteryBody
-                                text: "󱐋"
+                                text: Icons.batteryCharging
                                 color: root.walBackground
-                                font.pixelSize: 7
-                                font.family: "JetBrainsMono Nerd Font"
+                                font.pixelSize: Typography.sizeSuperTiny
+                                font.family: Typography.defaultFamily
                                 visible: bar.batteryCharging && bar.batteryPercent < 100
                                 opacity: bar.chargingPulse
                             }
 
                             Text {
                                 anchors.centerIn: batteryBody
-                                text: "󰄬"
+                                text: Icons.check
                                 color: root.walBackground
-                                font.pixelSize: 8
-                                font.family: "JetBrainsMono Nerd Font"
+                                font.pixelSize: Typography.sizeTiny
+                                font.family: Typography.defaultFamily
                                 visible: bar.batteryPercent >= 100
                             }
                         }
@@ -973,9 +974,9 @@ PanelWindow {
                             anchors.verticalCenter: parent.verticalCenter
                             text: bar.batteryPercent + "%"
                             color: batteryFill.color
-                            font.pixelSize: 11
+                            font.pixelSize: Typography.sizeBodySmall
                             font.bold: true
-                            font.family: "JetBrainsMono Nerd Font"
+                            font.family: Typography.defaultFamily
 
                             Behavior on color { ColorAnimation { duration: 400; easing.type: Easing.OutCubic } }
                         }
@@ -1002,9 +1003,9 @@ PanelWindow {
                         anchors.centerIn: parent
                         text: bar.volumeStr
                         color: bar.volumeMuted ? root.walColor8 : "#89dceb"
-                        font.pixelSize: 11
+                        font.pixelSize: Typography.sizeBodySmall
                         font.bold: true
-                        font.family: "JetBrainsMono Nerd Font"
+                        font.family: Typography.defaultFamily
 
                         Behavior on color { ColorAnimation { duration: 200; easing.type: Easing.OutCubic } }
                     }
@@ -1040,32 +1041,32 @@ PanelWindow {
                     Row {
                         id: networkRow
                         anchors.centerIn: parent
-                        spacing: 8
+                        spacing: Spacing.sm
 
                         Text {
                             anchors.verticalCenter: parent.verticalCenter
                             text: {
-                                if (!bar.wifiConnected) return "󰤭"
-                                if (bar.wifiStrength > 75) return "󰤨"
-                                if (bar.wifiStrength > 50) return "󰤥"
-                                if (bar.wifiStrength > 25) return "󰤢"
-                                return "󰤟"
+                                if (!bar.wifiConnected) return Icons.wifiSignal0
+                                if (bar.wifiStrength > 75) return Icons.wifiSignal4
+                                if (bar.wifiStrength > 50) return Icons.wifiSignal3
+                                if (bar.wifiStrength > 25) return Icons.wifiSignal2
+                                return Icons.wifiSignal1
                             }
                             color: bar.wifiConnected ? root.walColor2 : root.walColor8
-                            font.pixelSize: 14
-                            font.family: "JetBrainsMono Nerd Font"
+                            font.pixelSize: Typography.sizeBodyLarge
+                            font.family: Typography.defaultFamily
 
-                            Behavior on color { ColorAnimation { duration: 300; easing.type: Easing.OutCubic } }
+                            Behavior on color { ColorAnimation { duration: Animations.normal; easing.type: Easing.OutCubic } }
                         }
 
                         Text {
                             anchors.verticalCenter: parent.verticalCenter
-                            text: bar.btConnected ? "󰂱" : "󰂲"
+                            text: bar.btConnected ? Icons.bluetoothConnected : Icons.bluetoothDisabled
                             color: bar.btConnected ? root.walColor5 : root.walColor8
-                            font.pixelSize: 13
-                            font.family: "JetBrainsMono Nerd Font"
+                            font.pixelSize: Typography.sizeBodyMedium
+                            font.family: Typography.defaultFamily
 
-                            Behavior on color { ColorAnimation { duration: 300; easing.type: Easing.OutCubic } }
+                            Behavior on color { ColorAnimation { duration: Animations.normal; easing.type: Easing.OutCubic } }
                         }
                     }
                 }
@@ -1095,10 +1096,10 @@ PanelWindow {
 
                     Text {
                         anchors.centerIn: parent
-                        text: "󰕮"
+                        text: Icons.dashboard
                         color: root.walColor1
-                        font.pixelSize: 15
-                        font.family: "JetBrainsMono Nerd Font"
+                        font.pixelSize: Typography.sizeNormalLarge
+                        font.family: Typography.defaultFamily
                     }
                 }
 

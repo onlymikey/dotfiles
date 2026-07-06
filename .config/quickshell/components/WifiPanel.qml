@@ -4,6 +4,7 @@ import Quickshell.Wayland
 import QtQuick
 import QtQuick.Layouts
 import QtQuick.Controls
+import "../theme"
 
 PanelWindow {
     id: wifiPanel
@@ -11,13 +12,13 @@ PanelWindow {
     exclusionMode: ExclusionMode.Ignore
     anchors { top: true; right: true }
     margins { top: 40; right: root.wifiVisible ? 6 : -350 }
-    implicitHeight: 540
+    implicitHeight: 660
     implicitWidth: 320
     color: "transparent"
 
     focusable: true
     WlrLayershell.keyboardFocus: root.wifiVisible ? WlrKeyboardFocus.Exclusive : WlrKeyboardFocus.None
-    Behavior on margins.right { NumberAnimation { duration: 300; easing.type: Easing.OutCubic } }
+    Behavior on margins.right { NumberAnimation { duration: Animations.normal; easing.type: Easing.OutCubic } }
 
     property string wifiPasswordSSID: ""
     property bool showActiveDetails: false
@@ -65,39 +66,39 @@ PanelWindow {
         Rectangle {
             anchors.fill: parent
             color: Qt.rgba(root.walBackground.r, root.walBackground.g, root.walBackground.b, 0.7)
-            radius: 20
+            radius: Radius.panel
 
             ColumnLayout {
                 anchors.fill: parent
                 anchors.margins: 18
-                spacing: 12
+                spacing: Spacing.md
 
                 RowLayout {
                     Layout.fillWidth: true
                     Text {
-                        text: root.networkService.airplaneMode ? "󰀝" : "󰤨"
+                        text: root.networkService.airplaneMode ? Icons.wifiAirplaneMode : Icons.wifiSignal4
                         color: root.walColor5
-                        font.pixelSize: 22
-                        font.family: "JetBrainsMono Nerd Font"
+                        font.pixelSize: Typography.sizeHeadingSmall
+                        font.family: Typography.defaultFamily
                     }
                     Text {
                         text: root.networkService.airplaneMode ? "Airplane Mode" : "Network"
                         color: root.walColor5
-                        font.pixelSize: 16
+                        font.pixelSize: Typography.sizeTitleSmall
                         font.bold: true
-                        font.family: "JetBrainsMono Nerd Font"
+                        font.family: Typography.defaultFamily
                     }
                     Item { Layout.fillWidth: true }
                     Rectangle {
                         width: 44
                         height: 24
-                        radius: 12
+                        radius: Radius.large
                         color: root.wifiEnabled ? root.walColor5 : Qt.rgba(0.3, 0.3, 0.3, 0.5)
                         Behavior on color { ColorAnimation { duration: 200 } }
                         Rectangle {
                             width: 20
                             height: 20
-                            radius: 10
+                            radius: Radius.medium
                             y: 2
                             x: root.wifiEnabled ? 22 : 2
                             color: root.walBackground
@@ -116,15 +117,15 @@ PanelWindow {
                 // Ethernet Devices Section
                 ColumnLayout {
                     Layout.fillWidth: true
-                    spacing: 4
+                    spacing: Spacing.xs
                     visible: root.networkService.ethernetDevices.length > 0
                     
                     Text {
                         text: "Wired Connections"
                         color: root.walColor8
-                        font.pixelSize: 10
+                        font.pixelSize: Typography.sizeSmall
                         font.bold: true
-                        font.family: "JetBrainsMono Nerd Font"
+                        font.family: Typography.defaultFamily
                     }
                     
                     Repeater {
@@ -132,17 +133,17 @@ PanelWindow {
                         delegate: Rectangle {
                             Layout.fillWidth: true
                             height: 48
-                            radius: 12
+                            radius: Radius.large
                             color: Qt.rgba(0, 0, 0, 0.3)
                             RowLayout {
                                 anchors.fill: parent
                                 anchors.margins: 10
                                 spacing: 10
                                 Text {
-                                    text: "󰈀"
+                                    text: Icons.wifiEthernet
                                     color: modelData.connected ? root.walColor2 : root.walColor8
-                                    font.pixelSize: 18
-                                    font.family: "JetBrainsMono Nerd Font"
+                                    font.pixelSize: Typography.sizeTitleMedium
+                                    font.family: Typography.defaultFamily
                                 }
                                 ColumnLayout {
                                     Layout.fillWidth: true
@@ -150,15 +151,15 @@ PanelWindow {
                                     Text {
                                         text: "Ethernet (" + modelData.interface + ")"
                                         color: modelData.connected ? root.walColor2 : root.walForeground
-                                        font.pixelSize: 12
+                                        font.pixelSize: Typography.sizeNormal
                                         font.bold: true
-                                        font.family: "JetBrainsMono Nerd Font"
+                                        font.family: Typography.defaultFamily
                                     }
                                     Text {
                                         text: modelData.connected ? "Connected • " + modelData.speed : "Cable disconnected"
                                         color: root.walColor8
-                                        font.pixelSize: 9
-                                        font.family: "JetBrainsMono Nerd Font"
+                                        font.pixelSize: Typography.sizeCaption
+                                        font.family: Typography.defaultFamily
                                     }
                                 }
                                 Rectangle {
@@ -197,15 +198,15 @@ PanelWindow {
                 // VPN Connections Section
                 ColumnLayout {
                     Layout.fillWidth: true
-                    spacing: 4
+                    spacing: Spacing.xs
                     visible: root.networkService.vpnConnections.length > 0
                     
                     Text {
                         text: "Virtual Private Networks"
                         color: root.walColor8
-                        font.pixelSize: 10
+                        font.pixelSize: Typography.sizeSmall
                         font.bold: true
-                        font.family: "JetBrainsMono Nerd Font"
+                        font.family: Typography.defaultFamily
                     }
                     
                     Repeater {
@@ -213,17 +214,17 @@ PanelWindow {
                         delegate: Rectangle {
                             Layout.fillWidth: true
                             height: 40
-                            radius: 10
+                            radius: Radius.medium
                             color: Qt.rgba(0, 0, 0, 0.3)
                             RowLayout {
                                 anchors.fill: parent
                                 anchors.margins: 10
                                 spacing: 10
                                 Text {
-                                    text: "󰖂"
+                                    text: Icons.vpn
                                     color: modelData.connected ? root.walColor5 : root.walColor8
-                                    font.pixelSize: 16
-                                    font.family: "JetBrainsMono Nerd Font"
+                                    font.pixelSize: Typography.sizeTitleSmall
+                                    font.family: Typography.defaultFamily
                                 }
                                 ColumnLayout {
                                     Layout.fillWidth: true
@@ -231,17 +232,17 @@ PanelWindow {
                                     Text {
                                         text: modelData.name
                                         color: modelData.connected ? root.walColor5 : root.walForeground
-                                        font.pixelSize: 11
+                                        font.pixelSize: Typography.sizeBodySmall
                                         font.bold: true
-                                        font.family: "JetBrainsMono Nerd Font"
+                                        font.family: Typography.defaultFamily
                                         elide: Text.ElideRight
                                         Layout.fillWidth: true
                                     }
                                     Text {
                                         text: modelData.connected ? "Connected" : "Disconnected"
                                         color: root.walColor8
-                                        font.pixelSize: 9
-                                        font.family: "JetBrainsMono Nerd Font"
+                                        font.pixelSize: Typography.sizeCaption
+                                        font.family: Typography.defaultFamily
                                     }
                                 }
                             }
@@ -258,7 +259,7 @@ PanelWindow {
                 Rectangle {
                     Layout.fillWidth: true
                     implicitHeight: showActiveDetails ? 150 : 70
-                    radius: 12
+                    radius: Radius.large
                     color: Qt.rgba(0, 0, 0, 0.3)
                     visible: root.networkService.connectedNetwork !== null
                     clip: true
@@ -281,12 +282,12 @@ PanelWindow {
                             Text {
                                 text: {
                                     var net = root.networkService.connectedNetwork
-                                    if (!net) return "󰤟"
-                                    return net.signal > 75 ? "󰤨" : net.signal > 50 ? "󰤥" : net.signal > 25 ? "󰤢" : "󰤟"
+                                    if (!net) return Icons.wifiSignal1
+                                    return net.signal > 75 ? Icons.wifiSignal4 : net.signal > 50 ? Icons.wifiSignal3 : net.signal > 25 ? Icons.wifiSignal2 : Icons.wifiSignal1
                                 }
                                 color: root.walColor2
-                                font.pixelSize: 20
-                                font.family: "JetBrainsMono Nerd Font"
+                                font.pixelSize: Typography.sizeTitleLarge
+                                font.family: Typography.defaultFamily
                             }
                             ColumnLayout {
                                 Layout.fillWidth: true
@@ -295,9 +296,9 @@ PanelWindow {
                                 Text {
                                     text: root.networkService.connectedNetwork ? root.networkService.connectedNetwork.ssid : ""
                                     color: root.walColor2
-                                    font.pixelSize: 13
+                                    font.pixelSize: Typography.sizeBodyMedium
                                     font.bold: true
-                                    font.family: "JetBrainsMono Nerd Font"
+                                    font.family: Typography.defaultFamily
                                     elide: Text.ElideRight
                                     Layout.fillWidth: true
                                 }
@@ -306,27 +307,27 @@ PanelWindow {
                                         var net = root.networkService.connectedNetwork
                                         if (!net) return ""
                                         var t = "Connected"
-                                        if (net.frequency) t += " • " + net.frequency
-                                        if (net.security) t += " • " + net.security
-                                        if (net.ipv4) t += " • " + net.ipv4
+                                        if (net.frequency) t += Icons.separatorDot + net.frequency
+                                        if (net.security) t += Icons.separatorDot + net.security
+                                        if (net.ipv4) t += Icons.separatorDot + net.ipv4
                                         return t
                                     }
                                     color: root.walColor8
-                                    font.pixelSize: 9
-                                    font.family: "JetBrainsMono Nerd Font"
+                                    font.pixelSize: Typography.sizeCaption
+                                    font.family: Typography.defaultFamily
                                 }
                             }
                             Rectangle {
                                 width: 28
                                 height: 28
-                                radius: 8
+                                radius: Radius.mediumSmall
                                 color: wifiDiscMa.containsMouse ? Qt.rgba(1,1,1,0.1) : "transparent"
                                 Text {
                                     anchors.centerIn: parent
-                                    text: "󰅖"
+                                    text: Icons.close
                                     color: root.walColor1
-                                    font.pixelSize: 12
-                                    font.family: "JetBrainsMono Nerd Font"
+                                    font.pixelSize: Typography.sizeNormal
+                                    font.family: Typography.defaultFamily
                                 }
                                 MouseArea {
                                     id: wifiDiscMa
@@ -341,24 +342,24 @@ PanelWindow {
                         // Switch & Details Link row
                         RowLayout {
                             Layout.fillWidth: true
-                            spacing: 12
+                            spacing: Spacing.md
                             
                             RowLayout {
                                 spacing: 6
                                 Rectangle {
                                     width: 28
                                     height: 16
-                                    radius: 8
+                                    radius: Radius.mediumSmall
                                     color: (root.networkService.connectedNetwork && root.networkService.connectedNetwork.autoconnect) ? root.walColor2 : Qt.rgba(0.3, 0.3, 0.3, 0.5)
-                                    Behavior on color { ColorAnimation { duration: 150 } }
+                                    Behavior on color { ColorAnimation { duration: Animations.fast } }
                                     Rectangle {
                                         width: 12
                                         height: 12
-                                        radius: 6
+                                        radius: Radius.small
                                         y: 2
                                         x: (root.networkService.connectedNetwork && root.networkService.connectedNetwork.autoconnect) ? 14 : 2
                                         color: root.walBackground
-                                        Behavior on x { NumberAnimation { duration: 150; easing.type: Easing.OutCubic } }
+                                        Behavior on x { NumberAnimation { duration: Animations.fast; easing.type: Easing.OutCubic } }
                                     }
                                     MouseArea {
                                         anchors.fill: parent
@@ -374,8 +375,8 @@ PanelWindow {
                                 Text {
                                     text: "Auto-connect"
                                     color: root.walColor8
-                                    font.pixelSize: 8
-                                    font.family: "JetBrainsMono Nerd Font"
+                                    font.pixelSize: Typography.sizeTiny
+                                    font.family: Typography.defaultFamily
                                 }
                             }
                             
@@ -384,8 +385,8 @@ PanelWindow {
                             Text {
                                 text: wifiPanel.showActiveDetails ? "less..." : "more..."
                                 color: root.walColor5
-                                font.pixelSize: 8
-                                font.family: "JetBrainsMono Nerd Font"
+                                font.pixelSize: Typography.sizeTiny
+                                font.family: Typography.defaultFamily
                                 font.underline: true
                                 MouseArea {
                                     anchors.fill: parent
@@ -404,32 +405,32 @@ PanelWindow {
                             Text {
                                 text: "IPv4: " + (root.networkService.connectedNetwork && root.networkService.connectedNetwork.ipv4 ? root.networkService.connectedNetwork.ipv4 : "N/A")
                                 color: root.walColor8
-                                font.pixelSize: 8
-                                font.family: "JetBrainsMono Nerd Font"
+                                font.pixelSize: Typography.sizeTiny
+                                font.family: Typography.defaultFamily
                             }
                             Text {
                                 text: "IPv6: " + (root.networkService.connectedNetwork && root.networkService.connectedNetwork.ipv6 ? root.networkService.connectedNetwork.ipv6 : "N/A")
                                 color: root.walColor8
-                                font.pixelSize: 8
-                                font.family: "JetBrainsMono Nerd Font"
+                                font.pixelSize: Typography.sizeTiny
+                                font.family: Typography.defaultFamily
                             }
                             Text {
                                 text: "Gateway: " + (root.networkService.connectedNetwork && root.networkService.connectedNetwork.gateway ? root.networkService.connectedNetwork.gateway : "N/A")
                                 color: root.walColor8
-                                font.pixelSize: 8
-                                font.family: "JetBrainsMono Nerd Font"
+                                font.pixelSize: Typography.sizeTiny
+                                font.family: Typography.defaultFamily
                             }
                             Text {
                                 text: "DNS: " + (root.networkService.connectedNetwork && root.networkService.connectedNetwork.dns && root.networkService.connectedNetwork.dns.length > 0 ? root.networkService.connectedNetwork.dns.join(", ") : "N/A")
                                 color: root.walColor8
-                                font.pixelSize: 8
-                                font.family: "JetBrainsMono Nerd Font"
+                                font.pixelSize: Typography.sizeTiny
+                                font.family: Typography.defaultFamily
                             }
                             Text {
                                 text: "MAC: " + (root.networkService.connectedNetwork && root.networkService.connectedNetwork.mac ? root.networkService.connectedNetwork.mac : "N/A")
                                 color: root.walColor8
-                                font.pixelSize: 8
-                                font.family: "JetBrainsMono Nerd Font"
+                                font.pixelSize: Typography.sizeTiny
+                                font.family: Typography.defaultFamily
                             }
                         }
                     }
@@ -439,27 +440,27 @@ PanelWindow {
                 Rectangle {
                     Layout.fillWidth: true
                     Layout.preferredHeight: 36
-                    radius: 10
+                    radius: Radius.medium
                     color: Qt.rgba(0, 0, 0, 0.3)
                     visible: wifiPasswordSSID !== ""
                     RowLayout {
                         anchors.fill: parent
                         anchors.leftMargin: 12
                         anchors.rightMargin: 12
-                        spacing: 8
+                        spacing: Spacing.sm
                         Text {
-                            text: "󰌾"
+                            text: Icons.powerLock
                             color: root.walColor8
-                            font.pixelSize: 12
-                            font.family: "JetBrainsMono Nerd Font"
+                            font.pixelSize: Typography.sizeNormal
+                            font.family: Typography.defaultFamily
                         }
                         TextInput {
                             id: wifiPassInput
                             Layout.fillWidth: true
                             Layout.fillHeight: true
                             color: root.walForeground
-                            font.pixelSize: 12
-                            font.family: "JetBrainsMono Nerd Font"
+                            font.pixelSize: Typography.sizeNormal
+                            font.family: Typography.defaultFamily
                             verticalAlignment: TextInput.AlignVCenter
                             echoMode: TextInput.Password
                             clip: true
@@ -488,15 +489,15 @@ PanelWindow {
                         Rectangle {
                             width: 24
                             height: 24
-                            radius: 6
+                            radius: Radius.small
                             color: root.walColor5
                             Text {
                                 anchors.centerIn: parent
-                                text: "→"
+                                text: Icons.arrowRight
                                 color: root.walBackground
-                                font.pixelSize: 11
+                                font.pixelSize: Typography.sizeBodySmall
                                 font.bold: true
-                                font.family: "JetBrainsMono Nerd Font"
+                                font.family: Typography.defaultFamily
                             }
                             MouseArea {
                                 anchors.fill: parent
@@ -523,23 +524,23 @@ PanelWindow {
                     Text {
                         text: "Available Networks"
                         color: root.walColor8
-                        font.pixelSize: 11
-                        font.family: "JetBrainsMono Nerd Font"
+                        font.pixelSize: Typography.sizeBodySmall
+                        font.family: Typography.defaultFamily
                     }
                     Item { Layout.fillWidth: true }
                     Rectangle {
                         width: 24
                         height: 24
-                        radius: 6
+                        radius: Radius.small
                         color: wifiRefreshMa.containsMouse ? Qt.rgba(1,1,1,0.1) : "transparent"
                         
                         Text {
                             id: wifiRefreshIcon
                             anchors.centerIn: parent
-                            text: root.wifiScanning ? "󰑓" : "󰑐"
+                            text: root.wifiScanning ? Icons.refreshing : Icons.refresh
                             color: root.walColor8
-                            font.pixelSize: 12
-                            font.family: "JetBrainsMono Nerd Font"
+                            font.pixelSize: Typography.sizeNormal
+                            font.family: Typography.defaultFamily
                             transformOrigin: Item.Center
                             
                             RotationAnimation on rotation {
@@ -567,18 +568,18 @@ PanelWindow {
                     Layout.fillWidth: true
                     Layout.fillHeight: true
                     color: Qt.rgba(0, 0, 0, 0.3)
-                    radius: 12
+                    radius: Radius.large
                     clip: true
                     ListView {
                         anchors.fill: parent
                         anchors.margins: 6
-                        spacing: 4
+                        spacing: Spacing.xs
                         boundsBehavior: Flickable.StopAtBounds
                         model: root.networkService.availableNetworks
                         delegate: Rectangle {
                             width: parent ? parent.width : 0
                             height: 44
-                            radius: 10
+                            radius: Radius.medium
                             color: wifiNetMa.containsMouse ? Qt.rgba(1, 1, 1, 0.08) : "transparent"
                             Behavior on color { ColorAnimation { duration: 120 } }
                             RowLayout {
@@ -587,19 +588,20 @@ PanelWindow {
                                 anchors.rightMargin: 10
                                 spacing: 10
                                 Text {
-                                    text: modelData.signal > 75 ? "󰤨" : modelData.signal > 50 ? "󰤥" : modelData.signal > 25 ? "󰤢" : "󰤟"
+                                    text: modelData.signal > 75 ? Icons.wifiSignal4 : modelData.signal > 50 ? Icons.wifiSignal3 : modelData.signal > 25 ? Icons.wifiSignal2 : Icons.wifiSignal1
                                     color: modelData.saved ? root.walColor2 : root.walColor5
-                                    font.pixelSize: 16
-                                    font.family: "JetBrainsMono Nerd Font"
+                                    font.pixelSize: Typography.sizeTitleSmall
+                                    font.family: Typography.defaultFamily
                                 }
                                 ColumnLayout {
                                     Layout.fillWidth: true
+                                    Layout.preferredWidth: 0
                                     spacing: 1
                                     Text {
                                         text: modelData.ssid
                                         color: root.walForeground
-                                        font.pixelSize: 12
-                                        font.family: "JetBrainsMono Nerd Font"
+                                        font.pixelSize: Typography.sizeNormal
+                                        font.family: Typography.defaultFamily
                                         elide: Text.ElideRight
                                         Layout.fillWidth: true
                                     }
@@ -607,26 +609,28 @@ PanelWindow {
                                         text: {
                                             var detail = ""
                                             if (modelData.saved) detail += "Saved • "
-                                            detail += modelData.security + " • " + modelData.frequency + " • " + modelData.signal + "% (" + modelData.quality + ")"
+                                            detail += modelData.security + Icons.separatorDot + modelData.frequency + Icons.separatorDot + modelData.signal + "% (" + modelData.quality + ")"
                                             return detail
                                         }
                                         color: root.walColor8
-                                        font.pixelSize: 9
-                                        font.family: "JetBrainsMono Nerd Font"
+                                        font.pixelSize: Typography.sizeCaption
+                                        font.family: Typography.defaultFamily
+                                        elide: Text.ElideRight
+                                        Layout.fillWidth: true
                                     }
                                 }
                                 Rectangle {
                                     width: 24
                                     height: 24
-                                    radius: 6
+                                    radius: Radius.small
                                     visible: modelData.saved
                                     color: forgetMa.containsMouse ? Qt.rgba(1,1,1,0.1) : "transparent"
                                     Text {
                                         anchors.centerIn: parent
-                                        text: "󰆴"
+                                        text: Icons.trash
                                         color: root.walColor8
-                                        font.pixelSize: 12
-                                        font.family: "JetBrainsMono Nerd Font"
+                                        font.pixelSize: Typography.sizeNormal
+                                        font.family: Typography.defaultFamily
                                     }
                                     MouseArea {
                                         id: forgetMa
@@ -665,16 +669,16 @@ PanelWindow {
                         visible: root.networkService.availableNetworks.length === 0 && !root.wifiScanning
                         text: root.wifiEnabled ? "No networks found" : "Wi-Fi is off"
                         color: root.walColor8
-                        font.pixelSize: 12
-                        font.family: "JetBrainsMono Nerd Font"
+                        font.pixelSize: Typography.sizeNormal
+                        font.family: Typography.defaultFamily
                     }
                     Text {
                         anchors.centerIn: parent
                         visible: root.wifiScanning
                         text: "Scanning..."
                         color: root.walColor8
-                        font.pixelSize: 12
-                        font.family: "JetBrainsMono Nerd Font"
+                        font.pixelSize: Typography.sizeNormal
+                        font.family: Typography.defaultFamily
                     }
                 }
             }

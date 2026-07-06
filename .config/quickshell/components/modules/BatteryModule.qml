@@ -1,6 +1,7 @@
 import Quickshell
 import QtQuick
 import QtQuick.Layouts
+import "../../theme"
 
 DashboardModule {
     id: batteryModule
@@ -9,7 +10,7 @@ DashboardModule {
     /**
         * AUTO-DETECT if battery is available through shared service.
         * Desktop machines with no Battery-type power_supply are auto-hidden.
-     * 
+      * 
         * This keeps module UI logic separate from data acquisition logic.
      */
     available: root.batteryService.available
@@ -22,12 +23,12 @@ DashboardModule {
         var cap = batteryModule.batVal
 
         if (status === "Charging") {
-            return "⚡ Charging"
+            return Icons.batteryChargingText + " Charging"
         }
         if (status === "Discharging") {
             if (cap > 80) return "Discharging (Good)"
             if (cap > 20) return "Discharging"
-            return "⚠ Low Battery"
+            return Icons.batteryWarning + " Low Battery"
         }
         if (status === "Full") {
             return "Fully Charged"
@@ -44,20 +45,20 @@ DashboardModule {
             id: batIcon
             text: {
                 var cap = batteryModule.batVal
-                if (cap >= 90) return "󰁹"
-                if (cap >= 80) return "󰂂"
-                if (cap >= 70) return "󰂁"
-                if (cap >= 60) return "󰂀"
-                if (cap >= 50) return "󰁿"
-                if (cap >= 40) return "󰁾"
-                if (cap >= 30) return "󰁽"
-                if (cap >= 20) return "󰁼"
-                if (cap >= 10) return "󰁻"
-                return "󰂎"
+                if (cap >= 90) return Icons.battery100
+                if (cap >= 80) return Icons.battery90
+                if (cap >= 70) return Icons.battery80
+                if (cap >= 60) return Icons.battery70
+                if (cap >= 50) return Icons.battery60
+                if (cap >= 40) return Icons.battery50
+                if (cap >= 30) return Icons.battery40
+                if (cap >= 20) return Icons.battery30
+                if (cap >= 10) return Icons.battery20
+                return Icons.batteryEmpty
             }
             color: root.walColor2
-            font.pixelSize: 32
-            font.family: "JetBrainsMono Nerd Font"
+            font.pixelSize: Typography.sizeDisplaySmall
+            font.family: Typography.defaultFamily
         }
 
         ColumnLayout {
@@ -67,18 +68,19 @@ DashboardModule {
             Text {
                 text: "Battery " + batteryModule.batVal + "%"
                 color: root.walForeground
-                font.pixelSize: 18
-                font.family: "JetBrainsMono Nerd Font"
+                font.pixelSize: Typography.sizeTitleMedium
+                font.family: Typography.defaultFamily
             }
 
             Text {
                 id: batStatus
                 text: batteryModule.statusText
                 color: root.walColor8
-                font.pixelSize: 12
-                font.family: "JetBrainsMono Nerd Font"
+                font.pixelSize: Typography.sizeNormal
+                font.family: Typography.defaultFamily
             }
         }
     }
 
 }
+

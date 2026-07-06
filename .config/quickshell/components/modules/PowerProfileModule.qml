@@ -2,6 +2,7 @@ import Quickshell
 import QtQuick
 import QtQuick.Layouts
 import QtQuick.Controls
+import "../../theme"
 
 DashboardModule {
     id: powerProfileModule
@@ -21,9 +22,9 @@ DashboardModule {
             Text {
                 text: "Power Profile"
                 color: root.walForeground
-                font.pixelSize: 13
+                font.pixelSize: Typography.sizeBodyMedium
                 font.bold: true
-                font.family: "JetBrainsMono Nerd Font"
+                font.family: Typography.defaultFamily
             }
 
             Item { Layout.fillWidth: true }
@@ -32,8 +33,8 @@ DashboardModule {
                 visible: root.powerProfileService.supported && root.powerProfileService.driver !== ""
                 text: "Driver: " + root.powerProfileService.driver
                 color: root.walColor8
-                font.pixelSize: 10
-                font.family: "JetBrainsMono Nerd Font"
+                font.pixelSize: Typography.sizeSmall
+                font.family: Typography.defaultFamily
             }
         }
 
@@ -41,7 +42,7 @@ DashboardModule {
         RowLayout {
             visible: root.powerProfileService.supported
             Layout.fillWidth: true
-            spacing: 8
+            spacing: Spacing.sm
 
             Repeater {
                 model: root.powerProfileService.availableProfiles
@@ -50,7 +51,7 @@ DashboardModule {
                     id: profileCard
                     Layout.fillWidth: true
                     Layout.preferredHeight: 40
-                    radius: 8
+                    radius: Radius.mediumSmall
                     
                     property bool isActive: modelData === root.powerProfileService.currentProfile
                     
@@ -61,8 +62,8 @@ DashboardModule {
                     border.color: isActive ? root.walColor2 : Qt.rgba(1, 1, 1, 0.05)
                     border.width: 1
 
-                    Behavior on color { ColorAnimation { duration: 150 } }
-                    Behavior on border.color { ColorAnimation { duration: 150 } }
+                    Behavior on color { ColorAnimation { duration: Animations.fast } }
+                    Behavior on border.color { ColorAnimation { duration: Animations.fast } }
 
                     RowLayout {
                         anchors.centerIn: parent
@@ -71,16 +72,16 @@ DashboardModule {
                         Text {
                             text: getProfileIcon(modelData)
                             color: isActive ? root.walColor2 : root.walColor8
-                            font.pixelSize: 16
-                            font.family: "JetBrainsMono Nerd Font"
+                            font.pixelSize: Typography.sizeTitleSmall
+                            font.family: Typography.defaultFamily
                         }
 
                         Text {
                             text: getProfileName(modelData)
                             color: isActive ? root.walForeground : root.walColor8
-                            font.pixelSize: 11
+                            font.pixelSize: Typography.sizeBodySmall
                             font.bold: isActive
-                            font.family: "JetBrainsMono Nerd Font"
+                            font.family: Typography.defaultFamily
                         }
                     }
 
@@ -105,25 +106,25 @@ DashboardModule {
                 Layout.fillWidth: true
                 Layout.fillHeight: true
                 color: Qt.rgba(1, 1, 1, 0.02)
-                radius: 8
+                radius: Radius.mediumSmall
                 border.color: Qt.rgba(1, 1, 1, 0.05)
                 border.width: 1
 
                 RowLayout {
                     anchors.centerIn: parent
-                    spacing: 8
+                    spacing: Spacing.sm
                     
                     Text {
-                        text: "󰂚"
+                        text: Icons.notificationActive
                         color: root.walColor8
-                        font.pixelSize: 14
-                        font.family: "JetBrainsMono Nerd Font"
+                        font.pixelSize: Typography.sizeBodyLarge
+                        font.family: Typography.defaultFamily
                     }
                     Text {
                         text: "Power Profile service is unavailable"
                         color: root.walColor8
-                        font.pixelSize: 11
-                        font.family: "JetBrainsMono Nerd Font"
+                        font.pixelSize: Typography.sizeBodySmall
+                        font.family: Typography.defaultFamily
                     }
                 }
             }
@@ -132,11 +133,11 @@ DashboardModule {
 
     function getProfileIcon(profile) {
         var p = profile.toLowerCase()
-        if (p === "performance") return "󰓅"
-        if (p === "balanced") return "󰾅"
-        if (p === "power-saver" || p === "powersave" || p === "bat") return "󰌪"
-        if (p === "ac") return "󰚥"
-        return "󰓎"
+        if (p === "performance") return Icons.profilePerformance
+        if (p === "balanced") return Icons.profileBalanced
+        if (p === "power-saver" || p === "powersave" || p === "bat") return Icons.profilePowerSaver
+        if (p === "ac") return Icons.profileAc
+        return Icons.profileDefault
     }
 
     function getProfileName(profile) {
