@@ -5,7 +5,7 @@ hl.on("hyprland.start", function()
 
     hl.exec_cmd("wal -R -n")
 
-    hl.exec_cmd("~/.local/bin/start-quickshell.sh")
+    hl.exec_cmd("~/.config/scripts/start-quickshell.sh")
     hl.exec_cmd("~/.config/waybar/launch.sh")
 
     hl.exec_cmd("swaync")
