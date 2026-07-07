@@ -209,6 +209,7 @@ PanelWindow {
 
                 // Grouped Notifications List
                 ListView {
+                    id: groupedListView
                     visible: root.notificationService.history.count > 0
                     Layout.fillWidth: true
                     Layout.fillHeight: true
@@ -219,7 +220,7 @@ PanelWindow {
 
                     delegate: Rectangle {
                         id: groupCard
-                        width: parent.width
+                        width: groupedListView.width
                         height: groupLayout.implicitHeight + 16
                         radius: Radius.large
                         color: Qt.rgba(0, 0, 0, 0.15)
@@ -228,7 +229,9 @@ PanelWindow {
 
                         ColumnLayout {
                             id: groupLayout
-                            anchors.fill: parent
+                            anchors.left: parent.left
+                            anchors.right: parent.right
+                            anchors.top: parent.top
                             anchors.margins: 8
                             spacing: Spacing.xs
 
@@ -243,25 +246,26 @@ PanelWindow {
                                     cursorShape: Qt.PointingHandCursor
                                     
                                     onClicked: {
-                                        root.notificationService.history.setProperty(index, "expanded", !model.expanded)
+                                        root.notificationService.history.setProperty(index, "expanded", !expanded)
                                     }
 
                                     RowLayout {
                                         anchors.fill: parent
                                         spacing: Spacing.sm
 
-                                        // Expand/Collapse Chevron
+                                        // Expand/Collapse Chevron (Rotates points down when expanded, up when collapsed)
                                         Text {
-                                            text: model.expanded ? "" : "" // FontAwesome chevrons
+                                            text: ""
                                             font.family: Typography.defaultFamily
                                             font.pixelSize: Typography.sizeBodyMedium
                                             color: root.walColor8
-                                            Behavior on text { SequentialAnimation { NumberAnimation { duration: 100 } } }
+                                            rotation: (typeof expanded !== "undefined" && expanded) ? 0 : 180
+                                            Behavior on rotation { NumberAnimation { duration: 100; easing.type: Easing.OutCubic } }
                                         }
 
                                         // App Icon
                                         Text {
-                                            text: model.appIcon ? model.appIcon : Icons.notificationDefaultApp
+                                            text: (typeof appIcon !== "undefined" && appIcon) ? appIcon : Icons.notificationDefaultApp
                                             font.family: Typography.defaultFamily
                                             font.pixelSize: Typography.sizeNormal
                                             color: root.walColor2
@@ -269,7 +273,7 @@ PanelWindow {
 
                                         // App Name
                                         Text {
-                                            text: model.appName
+                                            text: (typeof appName !== "undefined") ? appName : ""
                                             font.family: Typography.defaultFamily
                                             font.pixelSize: Typography.sizeBodySmall
                                             font.bold: true
@@ -287,7 +291,7 @@ PanelWindow {
                                             Text {
                                                 id: countText
                                                 anchors.centerIn: parent
-                                                text: model.count.toString()
+                                                text: (typeof count !== "undefined") ? count.toString() : "0"
                                                 color: root.walColor8
                                                 font.pixelSize: Typography.sizeTiny
                                                 font.bold: true
@@ -299,8 +303,8 @@ PanelWindow {
 
                                         // Latest relative timestamp when collapsed
                                         Text {
-                                            visible: !model.expanded
-                                            text: getRelativeTime(model.latestTimeRaw)
+                                            visible: !(typeof expanded !== "undefined" && expanded)
+                                            text: (typeof latestTimeRaw !== "undefined") ? getRelativeTime(latestTimeRaw) : ""
                                             font.family: Typography.defaultFamily
                                             font.pixelSize: Typography.sizeTiny
                                             color: root.walColor8
@@ -313,7 +317,7 @@ PanelWindow {
                                     width: 24
                                     height: 24
                                     cursorShape: Qt.PointingHandCursor
-                                    onClicked: root.notificationService.clearGroup(model.appName)
+                                    onClicked: root.notificationService.clearGroup(appName)
 
                                     Text {
                                         anchors.centerIn: parent
@@ -332,40 +336,44 @@ PanelWindow {
                                 spacing: Spacing.sm
                                 clip: true
 
-                                height: model.expanded ? implicitHeight : 0
-                                opacity: model.expanded ? 1.0 : 0.0
-
-                                Behavior on height { NumberAnimation { duration: Animations.normal; easing.type: Easing.OutCubic } }
+                                Layout.preferredHeight: (typeof expanded !== "undefined" && expanded) ? implicitHeight : 0
+                                opacity: (typeof expanded !== "undefined" && expanded) ? 1.0 : 0.0
+Behavior on Layout.preferredHeight { NumberAnimation { duration: Animations.normal; easing.type: Easing.OutCubic } }
                                 Behavior on opacity { NumberAnimation { duration: Animations.normal } }
 
                                 Repeater {
-                                    model: model.notifications
-
+                                    model: (typeof notifications !== "undefined") ? notifications : null
                                     delegate: Rectangle {
-                                        width: parent.width
+                                        id: itemCard
+                                        width: nestedColumn.width
                                         height: itemLayout.implicitHeight + 16
                                         radius: Radius.medium
-                                        color: modelData.unread ? Qt.rgba(1, 1, 1, 0.04) : Qt.rgba(0, 0, 0, 0.25)
-                                        border.color: modelData.unread ? root.walColor5 : "transparent"
+                                        color: unread ? Qt.rgba(1, 1, 1, 0.04) : Qt.rgba(0, 0, 0, 0.25)
+                                        border.color: unread ? root.walColor5 : "transparent"
                                         border.width: 1
 
-                                        property int notifId: modelData.id
-                                        property bool hasDefaultAct: modelData.hasDefaultAction
-                                        property var actionsList: modelData.notifActions
+                                        // Access notifId role directly to bypass QML id keyword conflict
+                                        property int currentNotifId: notifId
+                                        property bool hasDefaultAct: hasDefaultAction
+                                        property var actionsList: notifActions
+                                        property bool showingReplyInput: false
 
                                         MouseArea {
                                             anchors.fill: parent
                                             enabled: hasDefaultAct
                                             cursorShape: enabled ? Qt.PointingHandCursor : Qt.ArrowCursor
                                             onClicked: {
-                                                root.notificationService.invokeAction(notifId, "default")
+                                                root.notificationService.invokeAction(currentNotifId, "default")
+                                                root.notificationService.clearNotification(currentNotifId)
                                                 root.closeAllPanels()
                                             }
                                         }
 
                                         ColumnLayout {
                                             id: itemLayout
-                                            anchors.fill: parent
+                                            anchors.left: parent.left
+                                            anchors.right: parent.right
+                                            anchors.top: parent.top
                                             anchors.margins: 8
                                             spacing: 6
 
@@ -375,7 +383,7 @@ PanelWindow {
 
                                                 // Relative Time
                                                 Text {
-                                                    text: getRelativeTime(modelData.timeRaw)
+                                                    text: getRelativeTime(timeRaw)
                                                     font.family: Typography.defaultFamily
                                                     font.pixelSize: Typography.sizeTiny
                                                     color: root.walColor8
@@ -384,7 +392,7 @@ PanelWindow {
 
                                                 // Unread Indicator
                                                 Rectangle {
-                                                    visible: modelData.unread
+                                                    visible: unread
                                                     width: 6
                                                     height: 6
                                                     radius: 3
@@ -396,7 +404,7 @@ PanelWindow {
                                                     width: 16
                                                     height: 16
                                                     cursorShape: Qt.PointingHandCursor
-                                                    onClicked: root.notificationService.clearNotification(notifId)
+                                                    onClicked: root.notificationService.clearNotification(currentNotifId)
 
                                                     Text {
                                                         anchors.centerIn: parent
@@ -413,8 +421,8 @@ PanelWindow {
                                                 spacing: 10
 
                                                 Image {
-                                                    visible: modelData.image !== ""
-                                                    source: modelData.image || ""
+                                                    visible: image !== ""
+                                                    source: image || ""
                                                     Layout.preferredWidth: 32
                                                     Layout.preferredHeight: 32
                                                     fillMode: Image.PreserveAspectCrop
@@ -426,7 +434,7 @@ PanelWindow {
                                                     spacing: 2
 
                                                     Text {
-                                                        text: modelData.summary
+                                                        text: summary
                                                         font.family: Typography.defaultFamily
                                                         font.pixelSize: Typography.sizeBodySmall
                                                         font.bold: true
@@ -436,7 +444,7 @@ PanelWindow {
                                                     }
 
                                                     Text {
-                                                        text: modelData.body
+                                                        text: body
                                                         font.family: Typography.defaultFamily
                                                         font.pixelSize: Typography.sizeCaption
                                                         color: root.walColor8
@@ -450,29 +458,128 @@ PanelWindow {
 
                                             // Action Buttons (Reply / Open / Dismiss etc.)
                                             RowLayout {
-                                                visible: actionsList !== undefined && actionsList !== null && actionsList.length > 0
+                                                visible: ((actionsList !== undefined && actionsList !== null && actionsList.count > 0) || (typeof hasInlineReply !== "undefined" && hasInlineReply)) && !itemCard.showingReplyInput
                                                 spacing: Spacing.sm
                                                 Layout.fillWidth: true
 
-                                                Repeater {
-                                                    model: actionsList
-                                                    delegate: Button {
-                                                        text: modelData.text
-                                                        flat: true
-                                                        background: Rectangle {
-                                                            color: parent.hovered ? Qt.rgba(1,1,1,0.1) : Qt.rgba(1,1,1,0.05)
-                                                            radius: Radius.small
+                                                // Inline Reply Toggle Button (triggers text box)
+                                                Button {
+                                                    visible: (typeof hasInlineReply !== "undefined" && hasInlineReply)
+                                                    text: "Responder"
+                                                    flat: true
+                                                    background: Rectangle {
+                                                        color: parent.hovered ? Qt.rgba(1, 1, 1, 0.1) : Qt.rgba(1, 1, 1, 0.05)
+                                                        radius: Radius.small
+                                                    }
+                                                    contentItem: Text {
+                                                        text: parent.text
+                                                        font.family: Typography.defaultFamily
+                                                        font.pixelSize: Typography.sizeCaption
+                                                        font.bold: true
+                                                        color: root.walColor5
+                                                        horizontalAlignment: Text.AlignHCenter
+                                                    }
+                                                    onClicked: {
+                                                        itemCard.showingReplyInput = true
+                                                    }
+                                                }
+                                                 Repeater {
+                                                      model: actionsList
+                                                      delegate: Button {
+                                                          text: model.text
+                                                          flat: true
+                                                          background: Rectangle {
+                                                              color: parent.hovered ? Qt.rgba(1,1,1,0.1) : Qt.rgba(1,1,1,0.05)
+                                                              radius: Radius.small
+                                                          }
+                                                          contentItem: Text {
+                                                              text: parent.text
+                                                              font.family: Typography.defaultFamily
+                                                              font.pixelSize: Typography.sizeCaption
+                                                              color: root.walForeground
+                                                              horizontalAlignment: Text.AlignHCenter
+                                                          }
+                                                          onClicked: {
+                                                              root.notificationService.invokeAction(currentNotifId, model.identifier)
+                                                              root.notificationService.clearNotification(currentNotifId)
+                                                          }
+                                                      }
+                                                  }
+                                            }
+
+                                            // Inline Reply Input Field (Shown only when toggled)
+                                            RowLayout {
+                                                visible: itemCard.showingReplyInput
+                                                spacing: Spacing.sm
+                                                Layout.fillWidth: true
+
+                                                TextField {
+                                                    id: replyField
+                                                    Layout.fillWidth: true
+                                                    placeholderText: "Responder..."
+                                                    placeholderTextColor: root.walColor8
+                                                    color: root.walForeground
+                                                    font.family: Typography.defaultFamily
+                                                    font.pixelSize: Typography.sizeCaption
+                                                    focus: itemCard.showingReplyInput
+                                                    background: Rectangle {
+                                                        color: Qt.rgba(0, 0, 0, 0.25)
+                                                        border.color: replyField.activeFocus ? root.walColor5 : Qt.rgba(1, 1, 1, 0.05)
+                                                        border.width: 1
+                                                        radius: Radius.small
+                                                    }
+                                                    onAccepted: {
+                                                        if (text.trim() !== "") {
+                                                            root.notificationService.sendReply(currentNotifId, text)
+                                                            text = ""
+                                                            itemCard.showingReplyInput = false
                                                         }
-                                                        contentItem: Text {
-                                                            text: parent.text
-                                                            font.family: Typography.defaultFamily
-                                                            font.pixelSize: Typography.sizeCaption
-                                                            color: root.walForeground
-                                                            horizontalAlignment: Text.AlignHCenter
+                                                    }
+                                                }
+
+                                                Button {
+                                                    text: "Enviar"
+                                                    flat: true
+                                                    background: Rectangle {
+                                                        color: parent.hovered ? Qt.rgba(1, 1, 1, 0.1) : Qt.rgba(1, 1, 1, 0.05)
+                                                        radius: Radius.small
+                                                    }
+                                                    contentItem: Text {
+                                                        text: "Enviar"
+                                                        font.family: Typography.defaultFamily
+                                                        font.pixelSize: Typography.sizeCaption
+                                                        font.bold: true
+                                                        color: root.walColor5
+                                                        horizontalAlignment: Text.AlignHCenter
+                                                        verticalAlignment: Text.AlignVCenter
+                                                    }
+                                                    onClicked: {
+                                                        if (replyField.text.trim() !== "") {
+                                                            root.notificationService.sendReply(currentNotifId, replyField.text)
+                                                            replyField.text = ""
+                                                            itemCard.showingReplyInput = false
                                                         }
-                                                        onClicked: {
-                                                            root.notificationService.invokeAction(notifId, modelData.identifier)
-                                                        }
+                                                    }
+                                                }
+
+                                                Button {
+                                                    text: "Cancelar"
+                                                    flat: true
+                                                    background: Rectangle {
+                                                        color: parent.hovered ? Qt.rgba(1, 1, 1, 0.1) : Qt.rgba(1, 1, 1, 0.05)
+                                                        radius: Radius.small
+                                                    }
+                                                    contentItem: Text {
+                                                        text: "Cancelar"
+                                                        font.family: Typography.defaultFamily
+                                                        font.pixelSize: Typography.sizeCaption
+                                                        color: root.walColor1
+                                                        horizontalAlignment: Text.AlignHCenter
+                                                        verticalAlignment: Text.AlignVCenter
+                                                    }
+                                                    onClicked: {
+                                                        replyField.text = ""
+                                                        itemCard.showingReplyInput = false
                                                     }
                                                 }
                                             }

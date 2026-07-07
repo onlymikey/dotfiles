@@ -12,7 +12,7 @@ Item {
     property alias history: groupedHistoryModel
 
     // Signal emitted when a new notification should trigger a visual popup on screen
-    signal notificationTriggered(int id, string appName, string summary, string body, string appIcon, string image, bool hasDefaultAction, var notifActions)
+    signal notificationTriggered(int id, string appName, string summary, string body, string appIcon, string image, bool hasDefaultAction, var notifActions, bool hasInlineReply)
 
     // Store raw active C++ Notification objects to invoke actions or dismiss them
     property var activeNotifications: ({})
@@ -37,24 +37,23 @@ Item {
 
         if (foundGroupIdx !== -1) {
             var groupObj = groupedHistoryModel.get(foundGroupIdx)
-            var notifs = groupObj.notifications || []
+            var notifsModel = groupObj.notifications // Nested ListModel
             
             // Check if notification ID already exists in the group (overwrite/update it)
             var existingIdx = -1
-            for (var j = 0; j < notifs.length; j++) {
-                if (notifs[j].id === notifData.id) {
+            for (var j = 0; j < notifsModel.count; j++) {
+                if (notifsModel.get(j).notifId === notifData.notifId) {
                     existingIdx = j
                     break
                 }
             }
             if (existingIdx !== -1) {
-                notifs[existingIdx] = notifData
+                notifsModel.set(existingIdx, notifData)
             } else {
-                notifs.unshift(notifData) // Insert new notification at the top of the group
+                notifsModel.insert(0, notifData) // Insert new notification at the top of the group
             }
             
-            groupedHistoryModel.setProperty(foundGroupIdx, "notifications", notifs)
-            groupedHistoryModel.setProperty(foundGroupIdx, "count", notifs.length)
+            groupedHistoryModel.setProperty(foundGroupIdx, "count", notifsModel.count)
             groupedHistoryModel.setProperty(foundGroupIdx, "latestTimeRaw", notifData.timeRaw)
             
             // Move group to top of the history list (most recently active)
@@ -69,7 +68,7 @@ Item {
                 count: 1,
                 latestTimeRaw: notifData.timeRaw,
                 expanded: false,
-                notifications: [ notifData ]
+                notifications: [ notifData ] // QML automatically converts this array to a ListModel
             })
         }
     }
@@ -77,22 +76,21 @@ Item {
     function removeNotificationFromGroup(id) {
         for (var i = 0; i < groupedHistoryModel.count; i++) {
             var groupObj = groupedHistoryModel.get(i)
-            var notifs = groupObj.notifications || []
+            var notifsModel = groupObj.notifications // Nested ListModel
             var foundIdx = -1
-            for (var j = 0; j < notifs.length; j++) {
-                if (notifs[j].id === id) {
+            for (var j = 0; j < notifsModel.count; j++) {
+                if (notifsModel.get(j).notifId === id) {
                     foundIdx = j
                     break
                 }
             }
             if (foundIdx !== -1) {
-                notifs.splice(foundIdx, 1)
-                if (notifs.length === 0) {
+                notifsModel.remove(foundIdx)
+                if (notifsModel.count === 0) {
                     groupedHistoryModel.remove(i)
                 } else {
-                    groupedHistoryModel.setProperty(i, "notifications", notifs)
-                    groupedHistoryModel.setProperty(i, "count", notifs.length)
-                    groupedHistoryModel.setProperty(i, "latestTimeRaw", notifs[0].timeRaw)
+                    groupedHistoryModel.setProperty(i, "count", notifsModel.count)
+                    groupedHistoryModel.setProperty(i, "latestTimeRaw", notifsModel.get(0).timeRaw)
                 }
                 break
             }
@@ -109,9 +107,9 @@ Item {
         }
         if (foundGroupIdx !== -1) {
             var groupObj = groupedHistoryModel.get(foundGroupIdx)
-            var notifs = groupObj.notifications || []
-            for (var j = 0; j < notifs.length; j++) {
-                var notifId = notifs[j].id
+            var notifsModel = groupObj.notifications // Nested ListModel
+            while (notifsModel.count > 0) {
+                var notifId = notifsModel.get(0).notifId
                 var activeNotif = activeNotifications[notifId]
                 if (activeNotif) {
                     activeNotif.dismiss()
@@ -125,6 +123,7 @@ Item {
                         break
                     }
                 }
+                notifsModel.remove(0)
             }
             groupedHistoryModel.remove(foundGroupIdx)
             updateUnreadCount()
@@ -137,6 +136,7 @@ Item {
         
         bodyMarkupSupported: true
         actionsSupported: true
+        inlineReplySupported: true
 
         onNotification: function(notification) {
             notification.tracked = true
@@ -145,17 +145,22 @@ Item {
             notification.closed.connect(function(reason) {
                 delete activeNotifications[notification.id]
                 
-                var foundIdx = -1
-                for (var idx = 0; idx < historyModel.count; idx++) {
-                    if (historyModel.get(idx).id === notification.id) {
-                        foundIdx = idx
-                        break
+                // Reason 1 is expired/timeout (keep in history, but clear buttons so they can't be clicked)
+                if (reason === 1) {
+                    var foundIdx = -1
+                    for (var idx = 0; idx < historyModel.count; idx++) {
+                        if (historyModel.get(idx).id === notification.id) {
+                            foundIdx = idx
+                            break
+                        }
                     }
-                }
-                if (foundIdx !== -1) {
-                    historyModel.setProperty(foundIdx, "notifActions", [])
-                    // Update actions inside grouped model too
-                    updateNotificationActionsInGroup(notification.id, [])
+                    if (foundIdx !== -1) {
+                        historyModel.setProperty(foundIdx, "notifActions", [])
+                        updateNotificationActionsInGroup(notification.id, [])
+                    }
+                } else {
+                    // Reason 2 (dismissed by user), 3 (closed by app), etc. (remove from history entirely)
+                    clearNotification(notification.id)
                 }
             })
 
@@ -163,12 +168,19 @@ Item {
             var hasDefault = false
             if (notification.actions) {
                 for (var i = 0; i < notification.actions.length; i++) {
-                    if (notification.actions[i].identifier === "default") {
+                    var actionId = notification.actions[i].identifier
+                    var actionText = notification.actions[i].text || ""
+                    
+                    if (actionId === "default") {
                         hasDefault = true
                     } else {
+                        var displayLabel = actionText
+                        if (displayLabel.indexOf(":") !== -1) {
+                            displayLabel = displayLabel.substring(displayLabel.indexOf(":") + 1)
+                        }
                         actionsList.push({
-                            identifier: notification.actions[i].identifier,
-                            text: notification.actions[i].text
+                            identifier: actionId,
+                            text: displayLabel
                         })
                     }
                 }
@@ -183,6 +195,7 @@ Item {
             }
 
             var notifData = {
+                notifId: notification.id,
                 id: notification.id,
                 appName: notification.appName || "Notification",
                 summary: notification.summary || "",
@@ -194,7 +207,8 @@ Item {
                 timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
                 unread: true,
                 hasDefaultAction: hasDefault,
-                notifActions: actionsList
+                notifActions: actionsList,
+                hasInlineReply: notification.hasInlineReply || (notification.hints && (notification.hints["x-kde-receive-reply"] === true || String(notification.hints["x-kde-receive-reply"]) === "true"))
             }
 
             if (foundIdx !== -1) {
@@ -215,7 +229,8 @@ Item {
                     notifData.appIcon,
                     notifData.image,
                     hasDefault,
-                    actionsList
+                    actionsList,
+                    notifData.hasInlineReply
                 )
             }
         }
@@ -224,17 +239,16 @@ Item {
     function updateNotificationActionsInGroup(id, actionsList) {
         for (var i = 0; i < groupedHistoryModel.count; i++) {
             var groupObj = groupedHistoryModel.get(i)
-            var notifs = groupObj.notifications || []
+            var notifsModel = groupObj.notifications // Nested ListModel
             var found = false
-            for (var j = 0; j < notifs.length; j++) {
-                if (notifs[j].id === id) {
-                    notifs[j].notifActions = actionsList
+            for (var j = 0; j < notifsModel.count; j++) {
+                if (notifsModel.get(j).notifId === id) {
+                    notifsModel.setProperty(j, "notifActions", actionsList)
                     found = true
                     break
                 }
             }
             if (found) {
-                groupedHistoryModel.setProperty(i, "notifications", notifs)
                 break
             }
         }
@@ -286,6 +300,19 @@ Item {
         markAsRead(id)
     }
 
+    function sendReply(id, replyText) {
+        var activeNotif = activeNotifications[id]
+        if (activeNotif) {
+            if (typeof activeNotif.sendInlineReply === "function") {
+                activeNotif.sendInlineReply(replyText)
+            } else {
+                console.log("sendInlineReply method not found on notification", id)
+            }
+        }
+        markAsRead(id)
+        clearNotification(id)
+    }
+
     function markAsRead(id) {
         for (var idx = 0; idx < historyModel.count; idx++) {
             if (historyModel.get(idx).id === id) {
@@ -297,17 +324,16 @@ Item {
         // Mark as read in grouped model too
         for (var i = 0; i < groupedHistoryModel.count; i++) {
             var groupObj = groupedHistoryModel.get(i)
-            var notifs = groupObj.notifications || []
+            var notifsModel = groupObj.notifications // Nested ListModel
             var found = false
-            for (var j = 0; j < notifs.length; j++) {
-                if (notifs[j].id === id) {
-                    notifs[j].unread = false
+            for (var j = 0; j < notifsModel.count; j++) {
+                if (notifsModel.get(j).notifId === id) {
+                    notifsModel.setProperty(j, "unread", false)
                     found = true
                     break
                 }
             }
             if (found) {
-                groupedHistoryModel.setProperty(i, "notifications", notifs)
                 break
             }
         }
@@ -323,11 +349,10 @@ Item {
         // Mark all as read in grouped model too
         for (var i = 0; i < groupedHistoryModel.count; i++) {
             var groupObj = groupedHistoryModel.get(i)
-            var notifs = groupObj.notifications || []
-            for (var j = 0; j < notifs.length; j++) {
-                notifs[j].unread = false
+            var notifsModel = groupObj.notifications // Nested ListModel
+            for (var j = 0; j < notifsModel.count; j++) {
+                notifsModel.setProperty(j, "unread", false)
             }
-            groupedHistoryModel.setProperty(i, "notifications", notifs)
         }
         
         updateUnreadCount()

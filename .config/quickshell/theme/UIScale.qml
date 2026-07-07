@@ -31,7 +31,7 @@ QtObject {
     readonly property real scale: envScale * calculatedScale
 
     // Semantically split scaling factors for future-proofing (e.g. accessibility, custom settings)
-    readonly property real fontScale: scale
+    readonly property real fontScale: scale < 1.0 ? 1.1 : scale
     readonly property real spacingScale: scale
     readonly property real iconScale: scale
 }
