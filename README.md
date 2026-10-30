@@ -41,14 +41,6 @@ UI (Declarative QML)
 
 ---
 
-## Session Restore
-
-Preserves the layout of Hyprland windows across shutdowns.
-*   **How it works**: Reads `/proc/<pid>/cmdline` to identify running apps. On login, it opens them and uses Hyprland's event socket (`.socket2.sock`) to restore their workspace, monitor, scale, and geometry.
-*   **Systemd Service**: Can be enabled from the Dashboard. If not installed, a one-click button will appear to copy and enable the user-level systemd service.
-
----
-
 ## Dependencies
 
 ### Required
