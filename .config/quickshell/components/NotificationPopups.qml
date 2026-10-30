@@ -1,5 +1,6 @@
 import Quickshell
 import Quickshell.Wayland
+import Quickshell.Hyprland
 import QtQuick
 import QtQuick.Layouts
 import QtQuick.Controls
@@ -7,9 +8,18 @@ import "../theme"
 
 PanelWindow {
     id: popupsWindow
-    visible: true
+    screen: root.focusedScreen
+    readonly property string screenName: popupsWindow.screen ? popupsWindow.screen.name : (Quickshell.screens.length > 0 ? Quickshell.screens[0].name : "DP-3")
+    readonly property var hyprMonitor: Hyprland.monitorFor(popupsWindow.screen)
+    readonly property bool hasFullscreen: {
+        if (root.fullscreenByMonitor && root.fullscreenByMonitor.hasOwnProperty(popupsWindow.screenName)) {
+            return !!root.fullscreenByMonitor[popupsWindow.screenName]
+        }
+        return hyprMonitor && hyprMonitor.activeWorkspace ? hyprMonitor.activeWorkspace.hasFullscreen : false
+    }
+    visible: popupsModel.count > 0 && !popupsWindow.hasFullscreen
     exclusionMode: ExclusionMode.Ignore
-    
+
     // Dynamically grab keyboard focus only when the user is typing a reply
     property int activeReplyCount: 0
     focusable: activeReplyCount > 0
@@ -18,8 +28,25 @@ PanelWindow {
     margins { top: 46; right: 10 }
 
     color: "transparent"
-    implicitWidth: 320
+    implicitWidth: Math.round(330 * UIScale.scale)
     implicitHeight: popupsColumn.implicitHeight
+
+    function resolveIconSource(iconVal) {
+        if (!iconVal || iconVal.length <= 2) return ""
+        if (iconVal.startsWith("file://") || iconVal.startsWith("image://") || iconVal.startsWith("http")) return iconVal
+        if (iconVal.startsWith("/")) return "file://" + iconVal
+        return "image://icon/" + iconVal
+    }
+
+    function parseActions(jsonStr) {
+        if (!jsonStr || jsonStr === "") return []
+        try {
+            var parsed = JSON.parse(jsonStr)
+            return Array.isArray(parsed) ? parsed : []
+        } catch (e) {
+            return []
+        }
+    }
 
     ListModel {
         id: popupsModel
@@ -28,18 +55,52 @@ PanelWindow {
     Connections {
         target: root.notificationService
         function onNotificationTriggered(id, appName, summary, body, appIcon, image, hasDefaultAction, notifActions, hasInlineReply) {
+            var cleanedApp = (appName || "Notification").trim() || "Notification"
+            var groupKey = cleanedApp.toLowerCase()
+            var actionsJson = JSON.stringify(notifActions || [])
+
+            // Group active popups from the same application so rapid notifications don't flood the screen
+            for (var i = 0; i < popupsModel.count; i++) {
+                var existing = popupsModel.get(i)
+                if (existing.groupKey === groupKey) {
+                    var newCount = (existing.groupCount || 1) + 1
+                    popupsModel.set(i, {
+                        popupId: existing.popupId,
+                        groupKey: groupKey,
+                        groupCount: newCount,
+                        notificationId: id,
+                        appName: cleanedApp,
+                        summary: summary || "",
+                        body: body || "",
+                        appIcon: appIcon || existing.appIcon || "",
+                        image: image || "",
+                        hasDefaultAction: Boolean(hasDefaultAction),
+                        notifActionsJson: actionsJson,
+                        hasInlineReply: Boolean(hasInlineReply),
+                        refreshTick: (existing.refreshTick || 0) + 1
+                    })
+                    if (i > 0) {
+                        popupsModel.move(i, 0, 1)
+                    }
+                    return
+                }
+            }
+
             var popupId = Date.now() + "_" + id
             popupsModel.insert(0, {
                 popupId: popupId,
+                groupKey: groupKey,
+                groupCount: 1,
                 notificationId: id,
-                appName: appName,
-                summary: summary,
-                body: body,
-                appIcon: appIcon,
-                image: image,
-                hasDefaultAction: hasDefaultAction,
-                notifActions: notifActions,
-                hasInlineReply: hasInlineReply ? true : false
+                appName: cleanedApp,
+                summary: summary || "",
+                body: body || "",
+                appIcon: appIcon || "",
+                image: image || "",
+                hasDefaultAction: Boolean(hasDefaultAction),
+                notifActionsJson: actionsJson,
+                hasInlineReply: Boolean(hasInlineReply),
+                refreshTick: 0
             })
         }
     }
@@ -65,10 +126,18 @@ PanelWindow {
                 property string popupIdVal: model ? model.popupId : ""
                 property int notifId: model ? model.notificationId : 0
                 property bool hasDefaultAct: model ? model.hasDefaultAction : false
-                property var actionsList: (model && model.notifActions) ? model.notifActions : null
-                
+                property var actionsList: popupsWindow.parseActions(model ? model.notifActionsJson : "[]")
+                property string iconSourceUrl: popupsWindow.resolveIconSource(model ? model.appIcon : "")
+                property int currentRefreshTick: model ? model.refreshTick : 0
+
                 property bool hasInlineRep: model ? model.hasInlineReply : false
                 property bool showingReplyInput: false
+
+                onCurrentRefreshTickChanged: {
+                    if (!showingReplyInput && !isRemoving) {
+                        dismissTimer.restart()
+                    }
+                }
 
                 onShowingReplyInputChanged: {
                     if (showingReplyInput) {
@@ -158,11 +227,26 @@ PanelWindow {
                             Layout.fillWidth: true
                             spacing: Spacing.sm
 
-                            Text {
-                                text: model.appIcon ? model.appIcon : Icons.notificationDefaultApp
-                                font.family: Typography.defaultFamily
-                                font.pixelSize: Typography.sizeBodyLarge
-                                color: root.walColor5
+                            Item {
+                                Layout.preferredWidth: 18
+                                Layout.preferredHeight: 18
+
+                                Image {
+                                    id: popupAppImg
+                                    anchors.fill: parent
+                                    visible: popupItem.iconSourceUrl !== "" && status === Image.Ready
+                                    source: popupItem.iconSourceUrl
+                                    fillMode: Image.PreserveAspectFit
+                                }
+
+                                Text {
+                                    anchors.centerIn: parent
+                                    visible: !popupAppImg.visible
+                                    text: (model.appIcon && model.appIcon.length <= 2) ? model.appIcon : Icons.notificationDefaultApp
+                                    font.family: Typography.defaultFamily
+                                    font.pixelSize: Typography.sizeBodyLarge
+                                    color: root.walColor5
+                                }
                             }
 
                             Text {
@@ -171,7 +255,27 @@ PanelWindow {
                                 font.pixelSize: Typography.sizeSmall
                                 font.bold: true
                                 color: root.walColor2
+                                elide: Text.ElideRight
                                 Layout.fillWidth: true
+                            }
+
+                            // Grouped count badge when multiple notifications arrive from the same app
+                            Rectangle {
+                                visible: (model.groupCount || 1) > 1
+                                height: 16
+                                width: popupGroupCountText.implicitWidth + 10
+                                radius: Radius.small
+                                color: Qt.rgba(root.walColor5.r, root.walColor5.g, root.walColor5.b, 0.2)
+
+                                Text {
+                                    id: popupGroupCountText
+                                    anchors.centerIn: parent
+                                    text: "+" + ((model.groupCount || 1) - 1) + " más"
+                                    color: root.walColor5
+                                    font.pixelSize: Typography.sizeTiny
+                                    font.bold: true
+                                    font.family: Typography.defaultFamily
+                                }
                             }
 
                             MouseArea {
@@ -194,8 +298,8 @@ PanelWindow {
                             spacing: 10
 
                             Image {
-                                visible: model.image !== ""
-                                source: model.image || ""
+                                visible: model.image !== "" && status === Image.Ready
+                                source: popupsWindow.resolveIconSource(model.image)
                                 Layout.preferredWidth: 40
                                 Layout.preferredHeight: 40
                                 fillMode: Image.PreserveAspectCrop
@@ -216,6 +320,7 @@ PanelWindow {
                                 }
 
                                 Text {
+                                    visible: model.body !== ""
                                     text: model.body
                                     font.family: Typography.defaultFamily
                                     font.pixelSize: Typography.sizeCaption
@@ -230,11 +335,10 @@ PanelWindow {
 
                         // Action Buttons Row (Responder / Open / Dismiss etc.)
                         RowLayout {
-                            visible: ((actionsList !== null && actionsList.count > 0) || hasInlineRep) && !popupItem.showingReplyInput
+                            visible: ((popupItem.actionsList && popupItem.actionsList.length > 0) || hasInlineRep) && !popupItem.showingReplyInput
                             spacing: Spacing.sm
                             Layout.fillWidth: true
 
-                            // Inline Reply Toggle Button (triggers text box)
                             Button {
                                 visible: hasInlineRep
                                 text: "Responder"
@@ -257,9 +361,10 @@ PanelWindow {
                             }
 
                             Repeater {
-                                model: actionsList
+                                model: popupItem.actionsList
                                 delegate: Button {
-                                    text: model.text
+                                    required property var modelData
+                                    text: modelData.text || ""
                                     flat: true
                                     background: Rectangle {
                                         color: parent.hovered ? Qt.rgba(1,1,1,0.1) : Qt.rgba(1,1,1,0.05)
@@ -273,15 +378,15 @@ PanelWindow {
                                         horizontalAlignment: Text.AlignHCenter
                                     }
                                     onClicked: {
-                                        root.notificationService.invokeAction(notifId, model.identifier)
-                                        root.notificationService.clearNotification(notifId)
-                                        removePopup()
+                                        root.notificationService.invokeAction(popupItem.notifId, modelData.identifier)
+                                        root.notificationService.clearNotification(popupItem.notifId)
+                                        popupItem.removePopup()
                                     }
                                 }
                             }
                         }
 
-                        // Inline Reply Input Field (Shown only when toggled)
+                        // Inline Reply Input Field
                         RowLayout {
                             visible: popupItem.showingReplyInput
                             spacing: Spacing.sm
@@ -304,9 +409,9 @@ PanelWindow {
                                 }
                                 onAccepted: {
                                     if (text.trim() !== "") {
-                                        root.notificationService.sendReply(notifId, text)
+                                        root.notificationService.sendReply(popupItem.notifId, text)
                                         text = ""
-                                        removePopup()
+                                        popupItem.removePopup()
                                     }
                                 }
                             }
@@ -329,9 +434,9 @@ PanelWindow {
                                 }
                                 onClicked: {
                                     if (replyField.text.trim() !== "") {
-                                        root.notificationService.sendReply(notifId, replyField.text)
+                                        root.notificationService.sendReply(popupItem.notifId, replyField.text)
                                         replyField.text = ""
-                                        removePopup()
+                                        popupItem.removePopup()
                                     }
                                 }
                             }

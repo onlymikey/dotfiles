@@ -8,17 +8,20 @@ import "../theme"
 
 PanelWindow {
     id: notifPanel
-    visible: true
+    screen: root.panelScreen
+    visible: root.notificationsVisible || slideAnim.running
     exclusionMode: ExclusionMode.Ignore
+    WlrLayershell.layer: WlrLayer.Overlay
+    WlrLayershell.namespace: "quickshell"
     anchors { top: true; right: true }
-    margins { top: 40; right: root.notificationsVisible ? 6 : -350 }
-    implicitHeight: 660
-    implicitWidth: 320
+    margins { top: 40; right: root.notificationsVisible ? 6 : -Math.round(370 * UIScale.scale) }
+    implicitHeight: Math.min(Math.round(660 * UIScale.scale), (notifPanel.screen ? notifPanel.screen.height : 1080) - 56)
+    implicitWidth: Math.round(340 * UIScale.scale)
     color: "transparent"
 
     focusable: true
     WlrLayershell.keyboardFocus: root.notificationsVisible ? WlrKeyboardFocus.Exclusive : WlrKeyboardFocus.None
-    Behavior on margins.right { NumberAnimation { duration: Animations.normal; easing.type: Easing.OutCubic } }
+    Behavior on margins.right { NumberAnimation { id: slideAnim; duration: Animations.normal; easing.type: Easing.OutCubic } }
 
     Connections {
         target: root
@@ -30,7 +33,6 @@ PanelWindow {
         }
     }
 
-    // Relative time formatting function ( MVC: UI presents formatted state )
     function getRelativeTime(timeRaw) {
         if (!timeRaw) return ""
         var diffMs = new Date().getTime() - timeRaw
@@ -40,6 +42,23 @@ PanelWindow {
         var diffHours = Math.floor(diffMins / 60)
         if (diffHours < 24) return diffHours + " hr ago"
         return "Yesterday"
+    }
+
+    function resolveIconSource(iconVal) {
+        if (!iconVal || iconVal.length <= 2) return ""
+        if (iconVal.startsWith("file://") || iconVal.startsWith("image://") || iconVal.startsWith("http")) return iconVal
+        if (iconVal.startsWith("/")) return "file://" + iconVal
+        return "image://icon/" + iconVal
+    }
+
+    function parseActions(jsonStr) {
+        if (!jsonStr || jsonStr === "") return []
+        try {
+            var parsed = JSON.parse(jsonStr)
+            return Array.isArray(parsed) ? parsed : []
+        } catch (e) {
+            return []
+        }
     }
 
     Item {
@@ -70,7 +89,7 @@ PanelWindow {
                 // Header
                 RowLayout {
                     Layout.fillWidth: true
-                    
+
                     Text {
                         text: root.notificationService.dnd ? Icons.notificationDnd : Icons.notificationActive
                         color: root.walColor5
@@ -78,7 +97,7 @@ PanelWindow {
                         font.family: Typography.defaultFamily
                     }
                     Text {
-                        text: "Notifications"
+                        text: I18n.s.notif_title
                         color: root.walColor5
                         font.pixelSize: Typography.sizeTitleSmall
                         font.bold: true
@@ -102,7 +121,7 @@ PanelWindow {
                             font.family: Typography.defaultFamily
                         }
                     }
-                    
+
                     Item { Layout.fillWidth: true }
 
                     // Do Not Disturb switch
@@ -143,7 +162,7 @@ PanelWindow {
                         height: 24
                         radius: Radius.small
                         color: clearAllMa.containsMouse ? Qt.rgba(1, 1, 1, 0.1) : "transparent"
-                        
+
                         Text {
                             anchors.centerIn: parent
                             text: Icons.notificationCenterHeader
@@ -151,7 +170,7 @@ PanelWindow {
                             font.pixelSize: Typography.sizeBodyLarge
                             font.family: Typography.defaultFamily
                         }
-                        
+
                         MouseArea {
                             id: clearAllMa
                             anchors.fill: parent
@@ -170,7 +189,7 @@ PanelWindow {
                     opacity: 0.3
                 }
 
-                // Empty State (Matches the design style)
+                // Empty State
                 ColumnLayout {
                     visible: root.notificationService.history.count === 0
                     Layout.fillWidth: true
@@ -189,7 +208,7 @@ PanelWindow {
 
                     Text {
                         Layout.alignment: Qt.AlignHCenter
-                        text: "No notifications"
+                        text: I18n.s.notif_empty
                         font.family: Typography.defaultFamily
                         font.pixelSize: Typography.sizeBodyLarge
                         font.bold: true
@@ -221,10 +240,12 @@ PanelWindow {
                     delegate: Rectangle {
                         id: groupCard
                         width: groupedListView.width
+                        property bool isExpanded: (typeof expanded !== "undefined") ? Boolean(expanded) : true
+                        property string iconSourceUrl: notifPanel.resolveIconSource((typeof appIcon !== "undefined") ? appIcon : "")
                         height: groupLayout.implicitHeight + 16
                         radius: Radius.large
-                        color: Qt.rgba(0, 0, 0, 0.15)
-                        border.color: Qt.rgba(1, 1, 1, 0.05)
+                        color: Qt.rgba(0, 0, 0, 0.18)
+                        border.color: Qt.rgba(1, 1, 1, 0.06)
                         border.width: 1
 
                         ColumnLayout {
@@ -242,43 +263,59 @@ PanelWindow {
 
                                 MouseArea {
                                     Layout.fillWidth: true
-                                    Layout.preferredHeight: 30
+                                    Layout.preferredHeight: 28
                                     cursorShape: Qt.PointingHandCursor
-                                    
+
                                     onClicked: {
-                                        root.notificationService.history.setProperty(index, "expanded", !expanded)
+                                        root.notificationService.history.setProperty(index, "expanded", !groupCard.isExpanded)
                                     }
 
                                     RowLayout {
                                         anchors.fill: parent
                                         spacing: Spacing.sm
 
-                                        // Expand/Collapse Chevron (Rotates points down when expanded, up when collapsed)
+                                        // Expand/Collapse Chevron
                                         Text {
                                             text: ""
                                             font.family: Typography.defaultFamily
-                                            font.pixelSize: Typography.sizeBodyMedium
+                                            font.pixelSize: Typography.sizeSmall
                                             color: root.walColor8
-                                            rotation: (typeof expanded !== "undefined" && expanded) ? 0 : 180
-                                            Behavior on rotation { NumberAnimation { duration: 100; easing.type: Easing.OutCubic } }
+                                            rotation: groupCard.isExpanded ? 0 : -90
+                                            Behavior on rotation { NumberAnimation { duration: 120; easing.type: Easing.OutCubic } }
                                         }
 
-                                        // App Icon
-                                        Text {
-                                            text: (typeof appIcon !== "undefined" && appIcon) ? appIcon : Icons.notificationDefaultApp
-                                            font.family: Typography.defaultFamily
-                                            font.pixelSize: Typography.sizeNormal
-                                            color: root.walColor2
+                                        // App Icon (supports Nerd Font glyph OR freedesktop icon/file path)
+                                        Item {
+                                            Layout.preferredWidth: 18
+                                            Layout.preferredHeight: 18
+
+                                            Image {
+                                                id: groupAppImg
+                                                anchors.fill: parent
+                                                visible: groupCard.iconSourceUrl !== "" && status === Image.Ready
+                                                source: groupCard.iconSourceUrl
+                                                fillMode: Image.PreserveAspectFit
+                                            }
+
+                                            Text {
+                                                anchors.centerIn: parent
+                                                visible: !groupAppImg.visible
+                                                text: (typeof appIcon !== "undefined" && appIcon && appIcon.length <= 2) ? appIcon : Icons.notificationDefaultApp
+                                                font.family: Typography.defaultFamily
+                                                font.pixelSize: Typography.sizeNormal
+                                                color: root.walColor2
+                                            }
                                         }
 
                                         // App Name
                                         Text {
-                                            text: (typeof appName !== "undefined") ? appName : ""
+                                            text: (typeof appName !== "undefined") ? appName : "Notification"
                                             font.family: Typography.defaultFamily
                                             font.pixelSize: Typography.sizeBodySmall
                                             font.bold: true
                                             color: root.walColor5
                                             elide: Text.ElideRight
+                                            Layout.fillWidth: true
                                         }
 
                                         // Count Badge
@@ -299,12 +336,9 @@ PanelWindow {
                                             }
                                         }
 
-                                        Item { Layout.fillWidth: true }
-
-                                        // Latest relative timestamp when collapsed
+                                        // Latest relative timestamp
                                         Text {
-                                            visible: !(typeof expanded !== "undefined" && expanded)
-                                            text: (typeof latestTimeRaw !== "undefined") ? getRelativeTime(latestTimeRaw) : ""
+                                            text: (typeof latestTimeRaw !== "undefined") ? notifPanel.getRelativeTime(latestTimeRaw) : ""
                                             font.family: Typography.defaultFamily
                                             font.pixelSize: Typography.sizeTiny
                                             color: root.walColor8
@@ -329,257 +363,336 @@ PanelWindow {
                                 }
                             }
 
-                            // Nested Notifications Container (Smooth collapse/expand transition)
-                            Column {
-                                id: nestedColumn
+                            // Collapsed Summary Preview (shown when group is collapsed)
+                            Text {
+                                visible: !groupCard.isExpanded && ((typeof latestSummary !== "undefined" && latestSummary !== "") || (typeof latestBody !== "undefined" && latestBody !== ""))
                                 Layout.fillWidth: true
-                                spacing: Spacing.sm
-                                clip: true
+                                Layout.leftMargin: 24
+                                Layout.rightMargin: 8
+                                text: {
+                                    var s = (typeof latestSummary !== "undefined") ? latestSummary : ""
+                                    var b = (typeof latestBody !== "undefined") ? latestBody.replace(/\n+/g, " ") : ""
+                                    if (s && b) return s + " — " + b
+                                    return s || b
+                                }
+                                font.family: Typography.defaultFamily
+                                font.pixelSize: Typography.sizeCaption
+                                color: root.walColor8
+                                elide: Text.ElideRight
+                            }
 
-                                Layout.preferredHeight: (typeof expanded !== "undefined" && expanded) ? implicitHeight : 0
-                                opacity: (typeof expanded !== "undefined" && expanded) ? 1.0 : 0.0
-Behavior on Layout.preferredHeight { NumberAnimation { duration: Animations.normal; easing.type: Easing.OutCubic } }
+                            // Nested Notifications Container (properly clipped & sized when collapsed)
+                            Item {
+                                id: nestedWrapper
+                                Layout.fillWidth: true
+                                property real targetHeight: groupCard.isExpanded ? nestedColumn.implicitHeight : 0
+                                Layout.preferredHeight: targetHeight
+                                implicitHeight: targetHeight
+                                height: targetHeight
+                                clip: true
+                                visible: groupCard.isExpanded || expandAnim.running
+                                opacity: groupCard.isExpanded ? 1.0 : 0.0
+                                Behavior on targetHeight { NumberAnimation { id: expandAnim; duration: Animations.normal; easing.type: Easing.OutCubic } }
                                 Behavior on opacity { NumberAnimation { duration: Animations.normal } }
 
-                                Repeater {
-                                    model: (typeof notifications !== "undefined") ? notifications : null
-                                    delegate: Rectangle {
-                                        id: itemCard
-                                        width: nestedColumn.width
-                                        height: itemLayout.implicitHeight + 16
-                                        radius: Radius.medium
-                                        color: unread ? Qt.rgba(1, 1, 1, 0.04) : Qt.rgba(0, 0, 0, 0.25)
-                                        border.color: unread ? root.walColor5 : "transparent"
-                                        border.width: 1
+                                Column {
+                                    id: nestedColumn
+                                    width: Math.max(200, groupCard.width - 16)
+                                    spacing: Spacing.sm
 
-                                        // Access notifId role directly to bypass QML id keyword conflict
-                                        property int currentNotifId: notifId
-                                        property bool hasDefaultAct: hasDefaultAction
-                                        property var actionsList: notifActions
-                                        property bool showingReplyInput: false
+                                    Repeater {
+                                        id: innerRepeater
+                                        model: notifications
+                                        delegate: Rectangle {
+                                            id: itemCard
+                                            width: nestedColumn.width
+                                            height: itemLayout.implicitHeight + 16
+                                            radius: Radius.medium
+                                            color: unread ? Qt.rgba(1, 1, 1, 0.05) : Qt.rgba(0, 0, 0, 0.25)
+                                            border.color: unread ? root.walColor5 : "transparent"
+                                            border.width: 1
 
-                                        MouseArea {
-                                            anchors.fill: parent
-                                            enabled: hasDefaultAct
-                                            cursorShape: enabled ? Qt.PointingHandCursor : Qt.ArrowCursor
-                                            onClicked: {
-                                                root.notificationService.invokeAction(currentNotifId, "default")
-                                                root.notificationService.clearNotification(currentNotifId)
-                                                root.closeAllPanels()
+                                            property int currentNotifId: notifId
+                                            property bool hasDefaultAct: hasDefaultAction
+                                            property var actionsList: notifPanel.parseActions((typeof notifActionsJson !== "undefined") ? notifActionsJson : "[]")
+                                            property bool showingReplyInput: false
+                                            property bool bodyExpanded: false
+                                            readonly property bool isTruncated: summaryText.truncated || bodyText.truncated
+
+                                            MouseArea {
+                                                anchors.fill: parent
+                                                enabled: hasDefaultAct || itemCard.isTruncated || itemCard.bodyExpanded
+                                                cursorShape: enabled ? Qt.PointingHandCursor : Qt.ArrowCursor
+                                                onClicked: {
+                                                    if (itemCard.isTruncated || itemCard.bodyExpanded) {
+                                                        itemCard.bodyExpanded = !itemCard.bodyExpanded
+                                                    } else if (hasDefaultAct) {
+                                                        root.notificationService.invokeAction(currentNotifId, "default")
+                                                        root.notificationService.clearNotification(currentNotifId)
+                                                        root.closeAllPanels()
+                                                    }
+                                                }
                                             }
-                                        }
 
-                                        ColumnLayout {
-                                            id: itemLayout
-                                            anchors.left: parent.left
-                                            anchors.right: parent.right
-                                            anchors.top: parent.top
-                                            anchors.margins: 8
-                                            spacing: 6
+                                            ColumnLayout {
+                                                id: itemLayout
+                                                anchors.left: parent.left
+                                                anchors.right: parent.right
+                                                anchors.top: parent.top
+                                                anchors.margins: 8
+                                                spacing: 6
 
-                                            RowLayout {
-                                                Layout.fillWidth: true
-                                                spacing: Spacing.sm
-
-                                                // Relative Time
-                                                Text {
-                                                    text: getRelativeTime(timeRaw)
-                                                    font.family: Typography.defaultFamily
-                                                    font.pixelSize: Typography.sizeTiny
-                                                    color: root.walColor8
+                                                RowLayout {
                                                     Layout.fillWidth: true
-                                                }
+                                                    spacing: Spacing.sm
 
-                                                // Unread Indicator
-                                                Rectangle {
-                                                    visible: unread
-                                                    width: 6
-                                                    height: 6
-                                                    radius: 3
-                                                    color: root.walColor2
-                                                }
-
-                                                // Dismiss individual notification button
-                                                MouseArea {
-                                                    width: 16
-                                                    height: 16
-                                                    cursorShape: Qt.PointingHandCursor
-                                                    onClicked: root.notificationService.clearNotification(currentNotifId)
-
+                                                    // Relative Time
                                                     Text {
-                                                        anchors.centerIn: parent
-                                                        text: Icons.close
+                                                        text: notifPanel.getRelativeTime(timeRaw)
                                                         font.family: Typography.defaultFamily
                                                         font.pixelSize: Typography.sizeTiny
-                                                        color: root.walColor1
-                                                    }
-                                                }
-                                            }
-
-                                            RowLayout {
-                                                Layout.fillWidth: true
-                                                spacing: 10
-
-                                                Image {
-                                                    visible: image !== ""
-                                                    source: image || ""
-                                                    Layout.preferredWidth: 32
-                                                    Layout.preferredHeight: 32
-                                                    fillMode: Image.PreserveAspectCrop
-                                                }
-
-                                                ColumnLayout {
-                                                    Layout.fillWidth: true
-                                                    Layout.preferredWidth: 0
-                                                    spacing: 2
-
-                                                    Text {
-                                                        text: summary
-                                                        font.family: Typography.defaultFamily
-                                                        font.pixelSize: Typography.sizeBodySmall
-                                                        font.bold: true
-                                                        color: root.walForeground
-                                                        elide: Text.ElideRight
-                                                        Layout.fillWidth: true
-                                                    }
-
-                                                    Text {
-                                                        text: body
-                                                        font.family: Typography.defaultFamily
-                                                        font.pixelSize: Typography.sizeCaption
                                                         color: root.walColor8
-                                                        wrapMode: Text.Wrap
-                                                        maximumLineCount: 3
-                                                        elide: Text.ElideRight
                                                         Layout.fillWidth: true
                                                     }
-                                                }
-                                            }
 
-                                            // Action Buttons (Reply / Open / Dismiss etc.)
-                                            RowLayout {
-                                                visible: ((actionsList !== undefined && actionsList !== null && actionsList.count > 0) || (typeof hasInlineReply !== "undefined" && hasInlineReply)) && !itemCard.showingReplyInput
-                                                spacing: Spacing.sm
-                                                Layout.fillWidth: true
+                                                    // Expand/Collapse toggle for long notifications
+                                                    MouseArea {
+                                                        visible: itemCard.isTruncated || itemCard.bodyExpanded
+                                                        width: expandNotifText.implicitWidth + 8
+                                                        height: 16
+                                                        cursorShape: Qt.PointingHandCursor
+                                                        onClicked: itemCard.bodyExpanded = !itemCard.bodyExpanded
 
-                                                // Inline Reply Toggle Button (triggers text box)
-                                                Button {
-                                                    visible: (typeof hasInlineReply !== "undefined" && hasInlineReply)
-                                                    text: "Responder"
-                                                    flat: true
-                                                    background: Rectangle {
-                                                        color: parent.hovered ? Qt.rgba(1, 1, 1, 0.1) : Qt.rgba(1, 1, 1, 0.05)
-                                                        radius: Radius.small
+                                                        Text {
+                                                            id: expandNotifText
+                                                            anchors.centerIn: parent
+                                                            text: itemCard.bodyExpanded ? I18n.s.notif_see_less : I18n.s.notif_see_more
+                                                            font.family: Typography.defaultFamily
+                                                            font.pixelSize: Typography.sizeTiny
+                                                            font.bold: true
+                                                            color: root.walColor5
+                                                        }
                                                     }
-                                                    contentItem: Text {
-                                                        text: parent.text
-                                                        font.family: Typography.defaultFamily
-                                                        font.pixelSize: Typography.sizeCaption
-                                                        font.bold: true
-                                                        color: root.walColor5
-                                                        horizontalAlignment: Text.AlignHCenter
-                                                    }
-                                                    onClicked: {
-                                                        itemCard.showingReplyInput = true
-                                                    }
-                                                }
-                                                 Repeater {
-                                                      model: actionsList
-                                                      delegate: Button {
-                                                          text: model.text
-                                                          flat: true
-                                                          background: Rectangle {
-                                                              color: parent.hovered ? Qt.rgba(1,1,1,0.1) : Qt.rgba(1,1,1,0.05)
-                                                              radius: Radius.small
-                                                          }
-                                                          contentItem: Text {
-                                                              text: parent.text
-                                                              font.family: Typography.defaultFamily
-                                                              font.pixelSize: Typography.sizeCaption
-                                                              color: root.walForeground
-                                                              horizontalAlignment: Text.AlignHCenter
-                                                          }
-                                                          onClicked: {
-                                                              root.notificationService.invokeAction(currentNotifId, model.identifier)
-                                                              root.notificationService.clearNotification(currentNotifId)
-                                                          }
-                                                      }
-                                                  }
-                                            }
 
-                                            // Inline Reply Input Field (Shown only when toggled)
-                                            RowLayout {
-                                                visible: itemCard.showingReplyInput
-                                                spacing: Spacing.sm
-                                                Layout.fillWidth: true
-
-                                                TextField {
-                                                    id: replyField
-                                                    Layout.fillWidth: true
-                                                    placeholderText: "Responder..."
-                                                    placeholderTextColor: root.walColor8
-                                                    color: root.walForeground
-                                                    font.family: Typography.defaultFamily
-                                                    font.pixelSize: Typography.sizeCaption
-                                                    focus: itemCard.showingReplyInput
-                                                    background: Rectangle {
-                                                        color: Qt.rgba(0, 0, 0, 0.25)
-                                                        border.color: replyField.activeFocus ? root.walColor5 : Qt.rgba(1, 1, 1, 0.05)
-                                                        border.width: 1
-                                                        radius: Radius.small
+                                                    // Unread Indicator
+                                                    Rectangle {
+                                                        visible: unread
+                                                        width: 6
+                                                        height: 6
+                                                        radius: 3
+                                                        color: root.walColor2
                                                     }
-                                                    onAccepted: {
-                                                        if (text.trim() !== "") {
-                                                            root.notificationService.sendReply(currentNotifId, text)
-                                                            text = ""
-                                                            itemCard.showingReplyInput = false
+
+                                                    // Dismiss individual notification button
+                                                    MouseArea {
+                                                        width: 16
+                                                        height: 16
+                                                        cursorShape: Qt.PointingHandCursor
+                                                        onClicked: root.notificationService.clearNotification(currentNotifId)
+
+                                                        Text {
+                                                            anchors.centerIn: parent
+                                                            text: Icons.close
+                                                            font.family: Typography.defaultFamily
+                                                            font.pixelSize: Typography.sizeTiny
+                                                            color: root.walColor1
                                                         }
                                                     }
                                                 }
 
-                                                Button {
-                                                    text: "Enviar"
-                                                    flat: true
-                                                    background: Rectangle {
-                                                        color: parent.hovered ? Qt.rgba(1, 1, 1, 0.1) : Qt.rgba(1, 1, 1, 0.05)
-                                                        radius: Radius.small
+                                                RowLayout {
+                                                    Layout.fillWidth: true
+                                                    spacing: 10
+
+                                                    Image {
+                                                        visible: image !== "" && status === Image.Ready
+                                                        source: notifPanel.resolveIconSource(image)
+                                                        Layout.preferredWidth: 32
+                                                        Layout.preferredHeight: 32
+                                                        fillMode: Image.PreserveAspectCrop
                                                     }
-                                                    contentItem: Text {
-                                                        text: "Enviar"
+
+                                                    ColumnLayout {
+                                                        Layout.fillWidth: true
+                                                        Layout.preferredWidth: 0
+                                                        spacing: 2
+
+                                                        Text {
+                                                            id: summaryText
+                                                            text: summary
+                                                            font.family: Typography.defaultFamily
+                                                            font.pixelSize: Typography.sizeBodySmall
+                                                            font.bold: true
+                                                            color: root.walForeground
+                                                            wrapMode: itemCard.bodyExpanded ? Text.Wrap : Text.NoWrap
+                                                            maximumLineCount: itemCard.bodyExpanded ? 50 : 1
+                                                            elide: itemCard.bodyExpanded ? Text.ElideNone : Text.ElideRight
+                                                            Layout.fillWidth: true
+                                                        }
+
+                                                        Text {
+                                                            id: bodyText
+                                                            visible: body !== ""
+                                                            text: body
+                                                            font.family: Typography.defaultFamily
+                                                            font.pixelSize: Typography.sizeCaption
+                                                            color: root.walColor8
+                                                            wrapMode: Text.Wrap
+                                                            maximumLineCount: itemCard.bodyExpanded ? 200 : 3
+                                                            elide: itemCard.bodyExpanded ? Text.ElideNone : Text.ElideRight
+                                                            Layout.fillWidth: true
+                                                        }
+                                                    }
+                                                }
+
+                                                // Action Buttons (shown only when supported by the notification)
+                                                RowLayout {
+                                                    visible: ((itemCard.actionsList && itemCard.actionsList.length > 0) || (typeof hasInlineReply !== "undefined" && hasInlineReply) || (hasDefaultAct && (itemCard.isTruncated || itemCard.bodyExpanded))) && !itemCard.showingReplyInput
+                                                    spacing: Spacing.sm
+                                                    Layout.fillWidth: true
+
+                                                    Button {
+                                                        visible: hasDefaultAct && (itemCard.isTruncated || itemCard.bodyExpanded)
+                                                        text: "Abrir"
+                                                        flat: true
+                                                        background: Rectangle {
+                                                            color: parent.hovered ? Qt.rgba(1, 1, 1, 0.1) : Qt.rgba(1, 1, 1, 0.05)
+                                                            radius: Radius.small
+                                                        }
+                                                        contentItem: Text {
+                                                            text: parent.text
+                                                            font.family: Typography.defaultFamily
+                                                            font.pixelSize: Typography.sizeCaption
+                                                            font.bold: true
+                                                            color: root.walColor2
+                                                            horizontalAlignment: Text.AlignHCenter
+                                                        }
+                                                        onClicked: {
+                                                            root.notificationService.invokeAction(itemCard.currentNotifId, "default")
+                                                            root.notificationService.clearNotification(itemCard.currentNotifId)
+                                                            root.closeAllPanels()
+                                                        }
+                                                    }
+
+                                                    Button {
+                                                        visible: (typeof hasInlineReply !== "undefined" && hasInlineReply)
+                                                        text: "Responder"
+                                                        flat: true
+                                                        background: Rectangle {
+                                                            color: parent.hovered ? Qt.rgba(1, 1, 1, 0.1) : Qt.rgba(1, 1, 1, 0.05)
+                                                            radius: Radius.small
+                                                        }
+                                                        contentItem: Text {
+                                                            text: parent.text
+                                                            font.family: Typography.defaultFamily
+                                                            font.pixelSize: Typography.sizeCaption
+                                                            font.bold: true
+                                                            color: root.walColor5
+                                                            horizontalAlignment: Text.AlignHCenter
+                                                        }
+                                                        onClicked: {
+                                                            itemCard.showingReplyInput = true
+                                                        }
+                                                    }
+                                                    Repeater {
+                                                        model: itemCard.actionsList
+                                                        delegate: Button {
+                                                            required property var modelData
+                                                            text: modelData.text || ""
+                                                            flat: true
+                                                            background: Rectangle {
+                                                                color: parent.hovered ? Qt.rgba(1,1,1,0.1) : Qt.rgba(1,1,1,0.05)
+                                                                radius: Radius.small
+                                                            }
+                                                            contentItem: Text {
+                                                                text: parent.text
+                                                                font.family: Typography.defaultFamily
+                                                                font.pixelSize: Typography.sizeCaption
+                                                                color: root.walForeground
+                                                                horizontalAlignment: Text.AlignHCenter
+                                                            }
+                                                            onClicked: {
+                                                                root.notificationService.invokeAction(itemCard.currentNotifId, modelData.identifier)
+                                                                root.notificationService.clearNotification(itemCard.currentNotifId)
+                                                            }
+                                                        }
+                                                    }
+                                                }
+
+                                                // Inline Reply Input Field
+                                                RowLayout {
+                                                    visible: itemCard.showingReplyInput
+                                                    spacing: Spacing.sm
+                                                    Layout.fillWidth: true
+
+                                                    TextField {
+                                                        id: replyField
+                                                        Layout.fillWidth: true
+                                                        placeholderText: "Responder..."
+                                                        placeholderTextColor: root.walColor8
+                                                        color: root.walForeground
                                                         font.family: Typography.defaultFamily
                                                         font.pixelSize: Typography.sizeCaption
-                                                        font.bold: true
-                                                        color: root.walColor5
-                                                        horizontalAlignment: Text.AlignHCenter
-                                                        verticalAlignment: Text.AlignVCenter
+                                                        focus: itemCard.showingReplyInput
+                                                        background: Rectangle {
+                                                            color: Qt.rgba(0, 0, 0, 0.25)
+                                                            border.color: replyField.activeFocus ? root.walColor5 : Qt.rgba(1, 1, 1, 0.05)
+                                                            border.width: 1
+                                                            radius: Radius.small
+                                                        }
+                                                        onAccepted: {
+                                                            if (text.trim() !== "") {
+                                                                root.notificationService.sendReply(itemCard.currentNotifId, text)
+                                                                text = ""
+                                                                itemCard.showingReplyInput = false
+                                                            }
+                                                        }
                                                     }
-                                                    onClicked: {
-                                                        if (replyField.text.trim() !== "") {
-                                                            root.notificationService.sendReply(currentNotifId, replyField.text)
+
+                                                    Button {
+                                                        text: "Enviar"
+                                                        flat: true
+                                                        background: Rectangle {
+                                                            color: parent.hovered ? Qt.rgba(1, 1, 1, 0.1) : Qt.rgba(1, 1, 1, 0.05)
+                                                            radius: Radius.small
+                                                        }
+                                                        contentItem: Text {
+                                                            text: "Enviar"
+                                                            font.family: Typography.defaultFamily
+                                                            font.pixelSize: Typography.sizeCaption
+                                                            font.bold: true
+                                                            color: root.walColor5
+                                                            horizontalAlignment: Text.AlignHCenter
+                                                            verticalAlignment: Text.AlignVCenter
+                                                        }
+                                                        onClicked: {
+                                                            if (replyField.text.trim() !== "") {
+                                                                root.notificationService.sendReply(itemCard.currentNotifId, replyField.text)
+                                                                replyField.text = ""
+                                                                itemCard.showingReplyInput = false
+                                                            }
+                                                        }
+                                                    }
+
+                                                    Button {
+                                                        text: "Cancelar"
+                                                        flat: true
+                                                        background: Rectangle {
+                                                            color: parent.hovered ? Qt.rgba(1, 1, 1, 0.1) : Qt.rgba(1, 1, 1, 0.05)
+                                                            radius: Radius.small
+                                                        }
+                                                        contentItem: Text {
+                                                            text: "Cancelar"
+                                                            font.family: Typography.defaultFamily
+                                                            font.pixelSize: Typography.sizeCaption
+                                                            color: root.walColor1
+                                                            horizontalAlignment: Text.AlignHCenter
+                                                            verticalAlignment: Text.AlignVCenter
+                                                        }
+                                                        onClicked: {
                                                             replyField.text = ""
                                                             itemCard.showingReplyInput = false
                                                         }
-                                                    }
-                                                }
-
-                                                Button {
-                                                    text: "Cancelar"
-                                                    flat: true
-                                                    background: Rectangle {
-                                                        color: parent.hovered ? Qt.rgba(1, 1, 1, 0.1) : Qt.rgba(1, 1, 1, 0.05)
-                                                        radius: Radius.small
-                                                    }
-                                                    contentItem: Text {
-                                                        text: "Cancelar"
-                                                        font.family: Typography.defaultFamily
-                                                        font.pixelSize: Typography.sizeCaption
-                                                        color: root.walColor1
-                                                        horizontalAlignment: Text.AlignHCenter
-                                                        verticalAlignment: Text.AlignVCenter
-                                                    }
-                                                    onClicked: {
-                                                        replyField.text = ""
-                                                        itemCard.showingReplyInput = false
                                                     }
                                                 }
                                             }

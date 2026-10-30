@@ -7,7 +7,7 @@ Item {
 
     property bool dnd: false
     property int unreadCount: 0
-    
+
     // Read-only alias to the grouped history list model
     property alias history: groupedHistoryModel
 
@@ -25,11 +25,20 @@ Item {
         id: groupedHistoryModel
     }
 
+    function normalizeGroupKey(appName) {
+        var cleaned = (appName || "Notification").trim()
+        if (cleaned === "") cleaned = "Notification"
+        return cleaned.toLowerCase()
+    }
+
     function addNotificationToGroup(notifData) {
-        var app = notifData.appName
+        var app = (notifData.appName || "Notification").trim()
+        if (app === "") app = "Notification"
+        var groupKey = normalizeGroupKey(app)
+
         var foundGroupIdx = -1
         for (var i = 0; i < groupedHistoryModel.count; i++) {
-            if (groupedHistoryModel.get(i).appName === app) {
+            if (groupedHistoryModel.get(i).groupKey === groupKey) {
                 foundGroupIdx = i
                 break
             }
@@ -38,7 +47,7 @@ Item {
         if (foundGroupIdx !== -1) {
             var groupObj = groupedHistoryModel.get(foundGroupIdx)
             var notifsModel = groupObj.notifications // Nested ListModel
-            
+
             // Check if notification ID already exists in the group (overwrite/update it)
             var existingIdx = -1
             for (var j = 0; j < notifsModel.count; j++) {
@@ -52,23 +61,32 @@ Item {
             } else {
                 notifsModel.insert(0, notifData) // Insert new notification at the top of the group
             }
-            
+
+            var latest = notifsModel.get(0)
             groupedHistoryModel.setProperty(foundGroupIdx, "count", notifsModel.count)
-            groupedHistoryModel.setProperty(foundGroupIdx, "latestTimeRaw", notifData.timeRaw)
-            
+            groupedHistoryModel.setProperty(foundGroupIdx, "latestTimeRaw", latest.timeRaw)
+            groupedHistoryModel.setProperty(foundGroupIdx, "latestSummary", latest.summary || "")
+            groupedHistoryModel.setProperty(foundGroupIdx, "latestBody", latest.body || "")
+            if (notifData.appIcon && notifData.appIcon !== "") {
+                groupedHistoryModel.setProperty(foundGroupIdx, "appIcon", notifData.appIcon)
+            }
+
             // Move group to top of the history list (most recently active)
             if (foundGroupIdx > 0) {
                 groupedHistoryModel.move(foundGroupIdx, 0, 1)
             }
         } else {
-            // Create a new application group at the top
+            // Create a new application group at the top (expanded by default so notifications are visible)
             groupedHistoryModel.insert(0, {
+                groupKey: groupKey,
                 appName: app,
-                appIcon: notifData.appIcon,
+                appIcon: notifData.appIcon || "",
                 count: 1,
                 latestTimeRaw: notifData.timeRaw,
-                expanded: false,
-                notifications: [ notifData ] // QML automatically converts this array to a ListModel
+                latestSummary: notifData.summary || "",
+                latestBody: notifData.body || "",
+                expanded: true,
+                notifications: [ notifData ]
             })
         }
     }
@@ -76,7 +94,7 @@ Item {
     function removeNotificationFromGroup(id) {
         for (var i = 0; i < groupedHistoryModel.count; i++) {
             var groupObj = groupedHistoryModel.get(i)
-            var notifsModel = groupObj.notifications // Nested ListModel
+            var notifsModel = groupObj.notifications
             var foundIdx = -1
             for (var j = 0; j < notifsModel.count; j++) {
                 if (notifsModel.get(j).notifId === id) {
@@ -89,8 +107,11 @@ Item {
                 if (notifsModel.count === 0) {
                     groupedHistoryModel.remove(i)
                 } else {
+                    var latest = notifsModel.get(0)
                     groupedHistoryModel.setProperty(i, "count", notifsModel.count)
-                    groupedHistoryModel.setProperty(i, "latestTimeRaw", notifsModel.get(0).timeRaw)
+                    groupedHistoryModel.setProperty(i, "latestTimeRaw", latest.timeRaw)
+                    groupedHistoryModel.setProperty(i, "latestSummary", latest.summary || "")
+                    groupedHistoryModel.setProperty(i, "latestBody", latest.body || "")
                 }
                 break
             }
@@ -98,34 +119,39 @@ Item {
     }
 
     function clearGroup(appName) {
+        var targetKey = normalizeGroupKey(appName)
         var foundGroupIdx = -1
         for (var i = 0; i < groupedHistoryModel.count; i++) {
-            if (groupedHistoryModel.get(i).appName === appName) {
+            var g = groupedHistoryModel.get(i)
+            if (g.groupKey === targetKey || g.appName === appName) {
                 foundGroupIdx = i
                 break
             }
         }
         if (foundGroupIdx !== -1) {
             var groupObj = groupedHistoryModel.get(foundGroupIdx)
-            var notifsModel = groupObj.notifications // Nested ListModel
+            var notifsModel = groupObj.notifications
             while (notifsModel.count > 0) {
                 var notifId = notifsModel.get(0).notifId
                 var activeNotif = activeNotifications[notifId]
                 if (activeNotif) {
-                    activeNotif.dismiss()
                     delete activeNotifications[notifId]
+                    activeNotif.dismiss()
                 }
-                
-                // Also remove from the flat historyModel database
+
                 for (var idx = 0; idx < historyModel.count; idx++) {
                     if (historyModel.get(idx).id === notifId) {
                         historyModel.remove(idx)
                         break
                     }
                 }
-                notifsModel.remove(0)
+                if (notifsModel.count > 0 && notifsModel.get(0).notifId === notifId) {
+                    notifsModel.remove(0)
+                }
             }
-            groupedHistoryModel.remove(foundGroupIdx)
+            if (foundGroupIdx < groupedHistoryModel.count && groupedHistoryModel.get(foundGroupIdx).groupKey === targetKey) {
+                groupedHistoryModel.remove(foundGroupIdx)
+            }
             updateUnreadCount()
         }
     }
@@ -133,82 +159,101 @@ Item {
     NotificationServer {
         id: server
         keepOnReload: true
-        
+
+        persistenceSupported: true
+        bodySupported: true
         bodyMarkupSupported: true
+        bodyHyperlinksSupported: true
+        bodyImagesSupported: true
         actionsSupported: true
+        actionIconsSupported: true
+        imageSupported: true
         inlineReplySupported: true
 
         onNotification: function(notification) {
             notification.tracked = true
-            activeNotifications[notification.id] = notification
-            
+            var nId = notification.id
+            activeNotifications[nId] = notification
+
             notification.closed.connect(function(reason) {
-                delete activeNotifications[notification.id]
-                
-                // Reason 1 is expired/timeout (keep in history, but clear buttons so they can't be clicked)
-                if (reason === 1) {
-                    var foundIdx = -1
+                delete activeNotifications[nId]
+
+                // Reason 2 is dismissed by user -> remove from history.
+                // Otherwise keep in history and disable live D-Bus actions since the sender closed the handle.
+                if (reason === 2) {
+                    clearNotification(nId)
+                } else {
                     for (var idx = 0; idx < historyModel.count; idx++) {
-                        if (historyModel.get(idx).id === notification.id) {
-                            foundIdx = idx
+                        if (historyModel.get(idx).id === nId) {
+                            historyModel.setProperty(idx, "notifActionsJson", "[]")
+                            historyModel.setProperty(idx, "hasInlineReply", false)
                             break
                         }
                     }
-                    if (foundIdx !== -1) {
-                        historyModel.setProperty(foundIdx, "notifActions", [])
-                        updateNotificationActionsInGroup(notification.id, [])
-                    }
-                } else {
-                    // Reason 2 (dismissed by user), 3 (closed by app), etc. (remove from history entirely)
-                    clearNotification(notification.id)
+                    updateNotificationActionsInGroup(nId, "[]", false)
                 }
             })
 
             var actionsList = []
             var hasDefault = false
+            var hasInline = Boolean(
+                notification.hasInlineReply ||
+                (notification.hints && (
+                    notification.hints["x-kde-receive-reply"] === true ||
+                    String(notification.hints["x-kde-receive-reply"]) === "true" ||
+                    notification.hints["x-kde-reply-placeholder-text"] !== undefined
+                ))
+            )
+
             if (notification.actions) {
                 for (var i = 0; i < notification.actions.length; i++) {
                     var actionId = notification.actions[i].identifier
                     var actionText = notification.actions[i].text || ""
-                    
+
                     if (actionId === "default") {
                         hasDefault = true
+                    } else if (actionId === "inline-reply") {
+                        hasInline = true
                     } else {
                         var displayLabel = actionText
                         if (displayLabel.indexOf(":") !== -1) {
                             displayLabel = displayLabel.substring(displayLabel.indexOf(":") + 1)
                         }
-                        actionsList.push({
-                            identifier: actionId,
-                            text: displayLabel
-                        })
+                        if (displayLabel.trim() !== "") {
+                            actionsList.push({
+                                identifier: actionId,
+                                text: displayLabel.trim()
+                            })
+                        }
                     }
                 }
             }
 
             var foundIdx = -1
             for (var idx = 0; idx < historyModel.count; idx++) {
-                if (historyModel.get(idx).id === notification.id) {
+                if (historyModel.get(idx).id === nId) {
                     foundIdx = idx
                     break
                 }
             }
 
+            var nowMs = new Date().getTime()
+            var actionsJsonStr = JSON.stringify(actionsList)
             var notifData = {
-                notifId: notification.id,
-                id: notification.id,
-                appName: notification.appName || "Notification",
+                notifId: nId,
+                id: nId,
+                appName: (notification.appName || "Notification").trim() || "Notification",
                 summary: notification.summary || "",
                 body: notification.body || "",
                 appIcon: notification.appIcon || "",
                 image: notification.image || "",
                 urgency: notification.urgency,
-                timeRaw: new Date().getTime(),
+                timeRaw: nowMs,
                 timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
                 unread: true,
                 hasDefaultAction: hasDefault,
-                notifActions: actionsList,
-                hasInlineReply: notification.hasInlineReply || (notification.hints && (notification.hints["x-kde-receive-reply"] === true || String(notification.hints["x-kde-receive-reply"]) === "true"))
+                notifActionsJson: actionsJsonStr,
+                hasInlineReply: hasInline
             }
 
             if (foundIdx !== -1) {
@@ -222,7 +267,7 @@ Item {
 
             if (!dnd && !notification.transient) {
                 notificationTriggered(
-                    notification.id,
+                    nId,
                     notifData.appName,
                     notifData.summary,
                     notifData.body,
@@ -236,14 +281,17 @@ Item {
         }
     }
 
-    function updateNotificationActionsInGroup(id, actionsList) {
+    function updateNotificationActionsInGroup(id, actionsJsonStr, hasInlineVal) {
         for (var i = 0; i < groupedHistoryModel.count; i++) {
             var groupObj = groupedHistoryModel.get(i)
-            var notifsModel = groupObj.notifications // Nested ListModel
+            var notifsModel = groupObj.notifications
             var found = false
             for (var j = 0; j < notifsModel.count; j++) {
                 if (notifsModel.get(j).notifId === id) {
-                    notifsModel.setProperty(j, "notifActions", actionsList)
+                    notifsModel.setProperty(j, "notifActionsJson", actionsJsonStr)
+                    if (typeof hasInlineVal !== "undefined") {
+                        notifsModel.setProperty(j, "hasInlineReply", Boolean(hasInlineVal))
+                    }
                     found = true
                     break
                 }
@@ -261,6 +309,7 @@ Item {
     function clearNotification(id) {
         var activeNotif = activeNotifications[id]
         if (activeNotif) {
+            delete activeNotifications[id]
             activeNotif.dismiss()
         }
 
@@ -275,12 +324,13 @@ Item {
     }
 
     function clearAll() {
-        for (var key in activeNotifications) {
-            if (activeNotifications.hasOwnProperty(key)) {
-                activeNotifications[key].dismiss()
+        var activeCopy = activeNotifications
+        activeNotifications = ({})
+        for (var key in activeCopy) {
+            if (activeCopy.hasOwnProperty(key) && activeCopy[key]) {
+                activeCopy[key].dismiss()
             }
         }
-        activeNotifications = {}
 
         historyModel.clear()
         groupedHistoryModel.clear()
@@ -320,11 +370,10 @@ Item {
                 break
             }
         }
-        
-        // Mark as read in grouped model too
+
         for (var i = 0; i < groupedHistoryModel.count; i++) {
             var groupObj = groupedHistoryModel.get(i)
-            var notifsModel = groupObj.notifications // Nested ListModel
+            var notifsModel = groupObj.notifications
             var found = false
             for (var j = 0; j < notifsModel.count; j++) {
                 if (notifsModel.get(j).notifId === id) {
@@ -337,7 +386,7 @@ Item {
                 break
             }
         }
-        
+
         updateUnreadCount()
     }
 
@@ -345,16 +394,15 @@ Item {
         for (var idx = 0; idx < historyModel.count; idx++) {
             historyModel.setProperty(idx, "unread", false)
         }
-        
-        // Mark all as read in grouped model too
+
         for (var i = 0; i < groupedHistoryModel.count; i++) {
             var groupObj = groupedHistoryModel.get(i)
-            var notifsModel = groupObj.notifications // Nested ListModel
+            var notifsModel = groupObj.notifications
             for (var j = 0; j < notifsModel.count; j++) {
                 notifsModel.setProperty(j, "unread", false)
             }
         }
-        
+
         updateUnreadCount()
     }
 
