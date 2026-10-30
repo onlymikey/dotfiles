@@ -28,6 +28,164 @@ ShellRoot {
     property bool btVisible: false
     property bool notificationsVisible: false
     property bool calendarVisible: false
+    property bool settingsVisible: false
+    property int settingsTab: 0
+    property bool phoneVisible: false
+    property bool barForceVisible: false
+    readonly property bool anyPanelOpen: dashboardVisible || musicVisible || launcherVisible || wifiVisible || btVisible || notificationsVisible || calendarVisible || settingsVisible || phoneVisible
+
+    property var fullscreenByMonitor: ({})
+    property string focusedMonitorName: Hyprland.focusedMonitor ? Hyprland.focusedMonitor.name : ""
+    readonly property ShellScreen focusedScreen: {
+        var monName = root.focusedMonitorName !== "" ? root.focusedMonitorName : (Hyprland.focusedMonitor ? Hyprland.focusedMonitor.name : "")
+        if (monName !== "") {
+            for (var i = 0; i < Quickshell.screens.length; i++) {
+                if (Quickshell.screens[i].name === monName) {
+                    return Quickshell.screens[i]
+                }
+            }
+        }
+        return Quickshell.screens.length > 0 ? Quickshell.screens[0] : null
+    }
+    readonly property ShellScreen barScreen: {
+        var priName = (root.monitorService && root.monitorService.primaryMonitor) ? root.monitorService.primaryMonitor : ""
+        if (priName !== "") {
+            for (var i = 0; i < Quickshell.screens.length; i++) {
+                if (Quickshell.screens[i].name === priName) {
+                    return Quickshell.screens[i]
+                }
+            }
+        }
+        return root.focusedScreen ? root.focusedScreen : (Quickshell.screens.length > 0 ? Quickshell.screens[0] : null)
+    }
+    property ShellScreen panelScreen: focusedScreen
+
+    onFocusedScreenChanged: {
+        if (!root.anyPanelOpen && root.focusedScreen) {
+            root.panelScreen = root.focusedScreen
+        }
+    }
+
+    function syncFullscreenState() {
+        Hyprland.refreshMonitors()
+        Hyprland.refreshWorkspaces()
+        if (!syncFullscreenProc.running) {
+            syncFullscreenProc.running = true
+        }
+    }
+
+    Process {
+        id: syncFullscreenProc
+        command: [
+            "python3", "-c",
+            "import os, socket, json\n" +
+            "p = os.environ.get('XDG_RUNTIME_DIR', '') + '/hypr/' + os.environ.get('HYPRLAND_INSTANCE_SIGNATURE', '') + '/.socket.sock'\n" +
+            "def req(cmd):\n" +
+            "    s = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)\n" +
+            "    s.connect(p)\n" +
+            "    s.sendall(cmd.encode())\n" +
+            "    chunks = []\n" +
+            "    while True:\n" +
+            "        d = s.recv(8192)\n" +
+            "        if not d: break\n" +
+            "        chunks.append(d)\n" +
+            "    s.close()\n" +
+            "    return json.loads(b''.join(chunks).decode())\n" +
+            "try:\n" +
+            "    mons = req('j/monitors')\n" +
+            "    workspaces = req('j/workspaces')\n" +
+            "    clients = req('j/clients')\n" +
+            "    fs_ws_names = set()\n" +
+            "    for w in workspaces:\n" +
+            "        if w.get('hasfullscreen'):\n" +
+            "            fs_ws_names.add(w.get('name'))\n" +
+            "    for c in clients:\n" +
+            "        if c.get('mapped') and not c.get('hidden'):\n" +
+            "            if c.get('fullscreen', 0) != 0 or c.get('fullscreenClient', 0) != 0:\n" +
+            "                ws_name = c.get('workspace', {}).get('name')\n" +
+            "                if ws_name: fs_ws_names.add(ws_name)\n" +
+            "    out = {}\n" +
+            "    for m in mons:\n" +
+            "        m_name = m.get('name')\n" +
+            "        aw_name = m.get('activeWorkspace', {}).get('name')\n" +
+            "        sw_name = m.get('specialWorkspace', {}).get('name')\n" +
+            "        is_fs = (aw_name in fs_ws_names) or (bool(sw_name) and sw_name in fs_ws_names)\n" +
+            "        if not is_fs:\n" +
+            "            for c in clients:\n" +
+            "                if c.get('mapped') and not c.get('hidden') and c.get('monitor') == m.get('id'):\n" +
+            "                    if c.get('fullscreen', 0) != 0 or c.get('fullscreenClient', 0) != 0:\n" +
+            "                        c_ws = c.get('workspace', {}).get('name')\n" +
+            "                        if c_ws in (aw_name, sw_name):\n" +
+            "                            is_fs = True\n" +
+            "                            break\n" +
+            "        out[m_name] = bool(is_fs)\n" +
+            "    print(json.dumps(out))\n" +
+            "except Exception:\n" +
+            "    print('{}')\n"
+        ]
+        stdout: SplitParser {
+            onRead: data => {
+                var line = data.trim()
+                if (line.length === 0) return
+                try {
+                    var parsed = JSON.parse(line)
+                    root.fullscreenByMonitor = parsed
+                } catch (e) {}
+            }
+        }
+    }
+
+    Connections {
+        target: Hyprland
+        function onFocusedMonitorChanged() {
+            if (Hyprland.focusedMonitor && Hyprland.focusedMonitor.name !== "") {
+                root.focusedMonitorName = Hyprland.focusedMonitor.name
+            }
+        }
+        function onRawEvent(event) {
+            if (event.name === "focusedmon" || event.name === "focusedmonv2") {
+                var parts = event.data.split(",")
+                if (parts.length >= 1 && parts[0].trim() !== "") {
+                    root.focusedMonitorName = parts[0].trim()
+                }
+                root.syncFullscreenState()
+            } else if (event.name === "fullscreen") {
+                var isFs = event.data.trim() !== "0" && event.data.trim() !== ""
+                var monName = root.focusedMonitorName !== "" ? root.focusedMonitorName : (Hyprland.focusedMonitor ? Hyprland.focusedMonitor.name : "DP-3")
+                var updated = {}
+                for (var k in root.fullscreenByMonitor) {
+                    updated[k] = root.fullscreenByMonitor[k]
+                }
+                updated[monName] = isFs
+                root.fullscreenByMonitor = updated
+                if (isFs && root.anyPanelOpen) {
+                    root.panelManager.closeAll()
+                }
+                if (!isFs) {
+                    root.barForceVisible = false
+                }
+                root.syncFullscreenState()
+            } else if (event.name === "workspace" || event.name === "workspacev2" || event.name === "openwindow" || event.name === "closewindow" || event.name === "movewindow" || event.name === "movewindowv2" || event.name === "activewindow" || event.name === "activewindowv2") {
+                root.syncFullscreenState()
+            } else if (event.name === "monitoradded" || event.name === "monitoraddedv2" || event.name === "monitorremoved" || event.name === "monitorremovedv2") {
+                barRecreateTimer.restart()
+                root.syncFullscreenState()
+            }
+        }
+    }
+
+    Timer {
+        id: barRecreateTimer
+        interval: 250
+        repeat: false
+        onTriggered: {
+            if (Quickshell.screens.length > 0) {
+                barLoader.active = false
+                barLoader.active = true
+            }
+        }
+    }
+
     property var pfpFiles: []
     property string searchTerm: ""
     property var appList: []
@@ -115,11 +273,25 @@ ShellRoot {
     property alias sensorService: sensorServiceObj
     property alias calendarService: calendarServiceObj
     property alias brightnessService: brightnessServiceObj
-    property alias sessionService: sessionServiceObj
+    property alias monitorService: monitorServiceObj
+    property alias settingsService: settingsServiceObj
+    property alias phoneService: phoneServiceObj
+
+    PhoneService {
+        id: phoneServiceObj
+    }
+
+    SettingsService {
+        id: settingsServiceObj
+    }
+
+    MonitorService {
+        id: monitorServiceObj
+    }
 
     BatteryService {
         id: batteryServiceObj
-        pollingEnabled: root.dashboardVisible
+        pollingEnabled: true
     }
 
     AudioService {
@@ -158,10 +330,6 @@ ShellRoot {
 
     BrightnessService {
         id: brightnessServiceObj
-    }
-
-    SessionService {
-        id: sessionServiceObj
     }
 
     PanelManager {
@@ -239,6 +407,7 @@ ShellRoot {
 
     Component.onCompleted: {
         initStateDir.running = true
+        root.syncFullscreenState()
     }
 
     Process {
@@ -252,7 +421,6 @@ ShellRoot {
             thumbDirProc.running = true
             loadGifIndexProc.running = true
             loadDndProc.running = true
-            loadSessionRestoreProc.running = true
         }
     }
 
@@ -274,20 +442,6 @@ ShellRoot {
             onRead: data => {
                 var dndVal = data.trim() === "true"
                 root.notificationService.dnd = dndVal
-            }
-        }
-    }
-
-    Process {
-        id: loadSessionRestoreProc
-        command: ["bash", "-c", "cat '" + root.statePath + "/session_restore' 2>/dev/null || echo 'false'"]
-        stdout: SplitParser {
-            onRead: data => {
-                var enabledVal = data.trim() === "true"
-                root.sessionService.enabled = enabledVal
-                if (enabledVal) {
-                    root.sessionService.restoreSession()
-                }
             }
         }
     }
@@ -356,14 +510,10 @@ function reloadClipboard() {
     Qt.callLater(function() {
         var p = Qt.createQmlObject('import Quickshell.Io; Process {}', root, 'launchProcDyn')
 
-        // Escape quotes to keep hyprctl happy
-        var safe = execStr.replace(/"/g, '\\"')
-
-        // Launch via Hyprland (same semantics as hyprland keybind exec -> focus works)
         p.command = [
             "bash",
             "-lc",
-            "setsid " + safe + " >/dev/null 2>&1 &"
+            "setsid " + execStr + " >/dev/null 2>&1 &"
         ]
         p.running = true
         p.exited.connect(function() { p.destroy() })
@@ -549,22 +699,10 @@ function reloadClipboard() {
     Process {
         id: appListProc
         onRunningChanged: {
-        if (running)
-            root.appList = []
-    }
-        command: ["bash", "-c",
-            "for f in /usr/share/applications/*.desktop '" + root.homePath + "/.local/share/applications'/*.desktop; do " +
-            "  [ -f \"$f\" ] || continue; " +
-            "  grep -qi '^NoDisplay=true' \"$f\" && continue; " +
-            "  grep -qi '^Hidden=true' \"$f\" && continue; " +
-            "  name=$(grep -m1 '^Name=' \"$f\" | cut -d= -f2-); " +
-            "  exec=$(grep -m1 '^Exec=' \"$f\" | cut -d= -f2- | sed 's/ %[fFuUdDnNickvm]//g'); " +
-            "  icon=$(grep -m1 '^Icon=' \"$f\" | cut -d= -f2-); " +
-            "  [ -z \"$name\" ] && continue; " +
-            "  [ -z \"$exec\" ] && continue; " +
-            "  printf '%s\\t%s\\t%s\\n' \"$name\" \"$exec\" \"$icon\"; " +
-            "done | sort -f -t$'\\t' -k1,1 | awk -F'\\t' '!seen[$1]++'"
-        ]
+            if (running)
+                root.appList = []
+        }
+        command: ["python3", root.configPath + "/services/parse_apps.py"]
         stdout: SplitParser {
             onRead: data => {
                 var line = data.trim()
@@ -603,11 +741,19 @@ HyprlandFocusGrab {
             || root.dashboardVisible
             || root.musicVisible
             || root.notificationsVisible
+            || root.calendarVisible
+            || root.settingsVisible
 
-    windows: [ wifiPanel, btPanel, launcherPanel, dashboardPanel, musicPanel, notificationCenter, notificationPopups ]
+    windows: [ wifiPanel, btPanel, launcherPanel, dashboardPanel, musicPanel, notificationCenter, notificationPopups, calendarPanel, settingsPanel ]
 }
 
-    Bar {}
+    Loader {
+        id: barLoader
+        active: Quickshell.screens.length > 0
+        sourceComponent: Component {
+            Bar {}
+        }
+    }
     Dashboard { id: dashboardPanel }
     MusicPanel { id: musicPanel }
     WifiPanel { id: wifiPanel }
@@ -616,6 +762,8 @@ HyprlandFocusGrab {
     NotificationCenter { id: notificationCenter }
     NotificationPopups { id: notificationPopups }
     CalendarPanel { id: calendarPanel }
+    SettingsPanel { id: settingsPanel; activeTab: root.settingsTab }
+    PhonePanel { id: phonePanel }
 
 
 
@@ -676,6 +824,46 @@ HyprlandFocusGrab {
 
         function toggle() {
             root.panelManager.toggle("calendar")
+        }
+    }
+
+    IpcHandler {
+        target: "monitors"
+
+        function toggle() {
+            root.panelManager.toggle("settings", { tab: 0 })
+        }
+    }
+
+    IpcHandler {
+        target: "settings"
+
+        function toggle() {
+            root.panelManager.toggle("settings")
+        }
+    }
+
+    IpcHandler {
+        target: "phone"
+
+        function toggle() {
+            root.panelManager.toggle("phone")
+        }
+
+        function scrcpy() {
+            if (root.phoneService) root.phoneService.toggleScrcpy()
+        }
+
+        function ring() {
+            if (root.phoneService) root.phoneService.ringPhone()
+        }
+    }
+
+    IpcHandler {
+        target: "bar"
+
+        function toggle() {
+            root.barForceVisible = !root.barForceVisible
         }
     }
 

@@ -1,6 +1,7 @@
 pragma Singleton
 import QtQuick
 import Quickshell
+import Quickshell.Hyprland
 
 QtObject {
     id: scaler
@@ -11,27 +12,44 @@ QtObject {
         return isNaN(val) ? 1.0 : val
     }
 
-    // Active/Primary screen representation
-    readonly property ShellScreen activeScreen: Quickshell.screens.length > 0 ? Quickshell.screens[0] : null
-
-    // Adaptive resolution-based scaling factor.
-    // Calculates a gentler, continuous scaling factor relative to a 1440p (1440px physical height) baseline.
-    readonly property real calculatedScale: {
-        if (!activeScreen || activeScreen.height <= 0) return 1.0;
-        // Linear interpolation formula:
-        // - 1440p (baseline): scale = 1.0
-        // - 1080p (standard): scale = 0.82 (18% downscaling for smaller workspace)
-        // - 1600p (16:10 laptop): scale = 1.08 (safe 8% upscaling)
-        // - 2160p (4K desktop): scale = 1.36 (36% upscaling)
-        var rawScale = 1.0 + (activeScreen.height - 1440.0) * 0.0005
-        return Math.max(0.5, Math.min(2.0, rawScale))
+    // Active/Focused screen representation (tracks Hyprland focusedMonitor dynamically)
+    readonly property ShellScreen activeScreen: {
+        var monName = Hyprland.focusedMonitor ? Hyprland.focusedMonitor.name : ""
+        if (monName !== "") {
+            for (var i = 0; i < Quickshell.screens.length; i++) {
+                if (Quickshell.screens[i].name === monName) {
+                    return Quickshell.screens[i]
+                }
+            }
+        }
+        return Quickshell.screens.length > 0 ? Quickshell.screens[0] : null
     }
+
+    // Detect non-HiDPI screens (standard 1x scale / ~80-110 PPI) to enforce minimum font legibility
+    readonly property bool isLowDpi: !activeScreen || activeScreen.devicePixelRatio <= 1.15
+
+    function scaleForScreen(scr) {
+        if (!scr || scr.height <= 0) return 1.0
+        var h = scr.height
+        var raw = 1.0
+        if (h > 1080) {
+            // Gentle upscaling above 1080p (e.g. 1440p -> ~1.13, 1600p -> ~1.18, 2160p -> ~1.38)
+            raw = 1.0 + (h - 1080.0) * 0.00035
+        } else if (h < 1080) {
+            // Gentle downscaling below 1080p, clamped to 0.90 so UI never becomes illegible
+            raw = 1.0 - (1080.0 - h) * 0.00025
+        }
+        return Math.max(0.90, Math.min(2.0, raw))
+    }
+
+    // Adaptive resolution-based scaling factor using 1080p (1080px logical height) as 1.0 baseline.
+    readonly property real calculatedScale: scaleForScreen(activeScreen)
 
     // Final combined scale factor
     readonly property real scale: envScale * calculatedScale
 
-    // Semantically split scaling factors for future-proofing (e.g. accessibility, custom settings)
-    readonly property real fontScale: scale < 1.0 ? 1.1 : scale
+    // Semantically unified scaling factors
+    readonly property real fontScale: scale
     readonly property real spacingScale: scale
     readonly property real iconScale: scale
 }

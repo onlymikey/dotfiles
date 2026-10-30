@@ -5,3 +5,4 @@ singleton UIScale 1.0 UIScale.qml
 singleton Spacing 1.0 Spacing.qml
 singleton Radius 1.0 Radius.qml
 singleton Animations 1.0 Animations.qml
+singleton I18n 1.0 I18n.qml

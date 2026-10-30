@@ -17,6 +17,11 @@ QtObject {
     readonly property string profileEdit: "󰏫"
     readonly property string arch: "󰣇"
     readonly property string dashboard: "󰕮"
+    readonly property string settings: "󰒓"
+    readonly property string language: "󰗊"
+    readonly property string keyboard: "󰌌"
+    readonly property string appearance: "󰔎"
+    readonly property string info: "󰋼"
     readonly property string listNavVertical: "↑↓"
     readonly property string listNavAll: "←→↑↓"
     readonly property string listNavHorizontal: "←→"
@@ -37,6 +42,7 @@ QtObject {
     readonly property string powerReboot: "󰜉"
     readonly property string powerLock: "󰌾"
     readonly property string powerSuspend: "󰒲"
+    readonly property string powerHibernate: "󰤄"
     readonly property string powerLogout: "󰍃"
 
     // Power Profiles
@@ -82,6 +88,15 @@ QtObject {
     readonly property string audioDeviceHeadphones: "󰋋"
     readonly property string audioDeviceSpeakers: "󰓃"
 
+    // Monitors & Display
+    readonly property string monitor: "󰍹"
+    readonly property string monitorMultiple: "󰍺"
+    readonly property string monitorMirror: "󰍸"
+    readonly property string monitorLaptop: "󰌢"
+    readonly property string monitorSparkle: "auto"
+    readonly property string monitorHz: "󰓅"
+    readonly property string monitorRes: "󰹑"
+
     // Bluetooth
     readonly property string bluetoothEnabled: "󰂯"
     readonly property string bluetoothConnected: "󰂱"
@@ -113,4 +128,12 @@ QtObject {
     readonly property string battery20: "󰁻"
     readonly property string battery10: "󰂎"
     readonly property string batteryEmpty: "󰂎"
+
+    // Phone / Connected Devices
+    readonly property string phone: "󰄜"
+    readonly property string phoneRing: "󰄨"
+    readonly property string phoneMirror: "󰄇"
+    readonly property string phoneSignal: "󰓒"
+    readonly property string phoneMessage: "󰍩"
+    readonly property string phoneTarget: "󰐴"
 }
