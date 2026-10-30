@@ -8,17 +8,20 @@ import "../theme"
 
 PanelWindow {
     id: wifiPanel
-    visible: true
+    screen: root.panelScreen
+    visible: root.wifiVisible || slideAnim.running
     exclusionMode: ExclusionMode.Ignore
+    WlrLayershell.layer: WlrLayer.Overlay
+    WlrLayershell.namespace: "quickshell"
     anchors { top: true; right: true }
-    margins { top: 40; right: root.wifiVisible ? 6 : -350 }
-    implicitHeight: 660
-    implicitWidth: 320
+    margins { top: 40; right: root.wifiVisible ? 6 : -Math.round(370 * UIScale.scale) }
+    implicitHeight: Math.min(Math.round(660 * UIScale.scale), (wifiPanel.screen ? wifiPanel.screen.height : 1080) - 56)
+    implicitWidth: Math.round(330 * UIScale.scale)
     color: "transparent"
 
     focusable: true
     WlrLayershell.keyboardFocus: root.wifiVisible ? WlrKeyboardFocus.Exclusive : WlrKeyboardFocus.None
-    Behavior on margins.right { NumberAnimation { duration: Animations.normal; easing.type: Easing.OutCubic } }
+    Behavior on margins.right { NumberAnimation { id: slideAnim; duration: Animations.normal; easing.type: Easing.OutCubic } }
 
     property string wifiPasswordSSID: ""
     property bool showActiveDetails: false
@@ -27,6 +30,7 @@ PanelWindow {
         target: root
         function onWifiVisibleChanged() {
             if (root.wifiVisible) {
+                root.networkService.refresh()
                 Qt.callLater(() => {
                     if (wifiPasswordSSID !== "") wifiPassInput.forceActiveFocus()
                     else wifiFocusAnchor.forceActiveFocus()

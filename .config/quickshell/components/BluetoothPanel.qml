@@ -8,24 +8,28 @@ import "../theme"
 
 PanelWindow {
     id: btPanel
-    visible: true
+    screen: root.panelScreen
+    visible: root.btVisible || slideAnim.running
     exclusionMode: ExclusionMode.Ignore
+    WlrLayershell.layer: WlrLayer.Overlay
+    WlrLayershell.namespace: "quickshell"
     anchors { top: true; right: true }
-    margins { top: 40; right: root.btVisible ? 6 : -350 }
-    implicitHeight: 460
-    implicitWidth: 320
+    margins { top: 40; right: root.btVisible ? 6 : -Math.round(370 * UIScale.scale) }
+    implicitHeight: Math.min(Math.round(480 * UIScale.scale), (btPanel.screen ? btPanel.screen.height : 1080) - 56)
+    implicitWidth: Math.round(330 * UIScale.scale)
     color: "transparent"
 
     // Important: when "closed", don't participate in focus at all
     focusable: true
     WlrLayershell.keyboardFocus: root.btVisible ? WlrKeyboardFocus.Exclusive : WlrKeyboardFocus.None
 
-    Behavior on margins.right { NumberAnimation { duration: Animations.normal; easing.type: Easing.OutCubic } }
+    Behavior on margins.right { NumberAnimation { id: slideAnim; duration: Animations.normal; easing.type: Easing.OutCubic } }
 
     Connections {
         target: root
         function onBtVisibleChanged() {
             if (root.btVisible) {
+                root.bluetoothService.refresh()
                 focusTimer.start()
             }
         }
