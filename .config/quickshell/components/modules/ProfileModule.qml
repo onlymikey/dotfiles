@@ -133,6 +133,31 @@ DashboardModule {
                     font.family: Typography.defaultFamily
                 }
             }
+
+            Rectangle {
+                Layout.preferredWidth: 32
+                Layout.preferredHeight: 32
+                radius: Radius.mediumSmall
+                color: setBtnHover.containsMouse ? Qt.rgba(root.walColor5.r, root.walColor5.g, root.walColor5.b, 0.25) : Qt.rgba(0, 0, 0, 0.25)
+                border.width: 1
+                border.color: setBtnHover.containsMouse ? root.walColor5 : Qt.rgba(1, 1, 1, 0.08)
+
+                Text {
+                    anchors.centerIn: parent
+                    text: Icons.settings
+                    color: setBtnHover.containsMouse ? root.walColor5 : root.walColor8
+                    font.pixelSize: Typography.sizeBodyLarge
+                    font.family: Typography.defaultFamily
+                }
+
+                MouseArea {
+                    id: setBtnHover
+                    anchors.fill: parent
+                    hoverEnabled: true
+                    cursorShape: Qt.PointingHandCursor
+                    onClicked: root.panelManager.open("settings")
+                }
+            }
         }
 
         Rectangle {

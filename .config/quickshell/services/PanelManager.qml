@@ -9,7 +9,7 @@ QtObject {
     property string activePanel: ""
     property string previousPanel: ""
 
-    readonly property var panelNames: ["dashboard", "launcher", "music", "wifi", "bluetooth", "notifications", "calendar"]
+    readonly property var panelNames: ["dashboard", "launcher", "music", "wifi", "bluetooth", "notifications", "calendar", "monitors", "settings", "phone"]
 
     function isKnown(name) {
         return panelNames.indexOf(name) !== -1
@@ -23,6 +23,9 @@ QtObject {
         if (name === "bluetooth") return shell.btVisible
         if (name === "notifications") return shell.notificationsVisible
         if (name === "calendar") return shell.calendarVisible
+        if (name === "monitors") return shell.settingsVisible
+        if (name === "settings") return shell.settingsVisible
+        if (name === "phone") return shell.phoneVisible
         return false
     }
 
@@ -34,10 +37,17 @@ QtObject {
         else if (name === "bluetooth") shell.btVisible = value
         else if (name === "notifications") shell.notificationsVisible = value
         else if (name === "calendar") shell.calendarVisible = value
+        else if (name === "monitors" || name === "settings") shell.settingsVisible = value
+        else if (name === "phone") shell.phoneVisible = value
     }
 
     function _applyOpenSideEffects(name, options) {
         var opts = options || ({})
+
+        if (name === "phone") {
+            if (shell.phoneService) shell.phoneService.refresh()
+            return
+        }
 
         if (name === "wifi") {
             shell.refreshWifi()
@@ -46,6 +56,15 @@ QtObject {
 
         if (name === "bluetooth") {
             shell.refreshBluetooth()
+            return
+        }
+
+        if (name === "monitors" || name === "settings") {
+            if (shell.monitorService) shell.monitorService.refresh()
+            if (shell.settingsService) shell.settingsService.refresh()
+            if (opts.hasOwnProperty("tab")) {
+                shell.settingsTab = opts.tab
+            }
             return
         }
 
@@ -68,6 +87,10 @@ QtObject {
         if (!isKnown(name)) return
 
         var opts = options || ({})
+
+        if (shell.focusedScreen) {
+            shell.panelScreen = shell.focusedScreen
+        }
 
         if (activePanel === name) {
             if (name === "launcher" && opts.hasOwnProperty("tab") && shell.activeTab !== opts.tab) {
@@ -122,6 +145,14 @@ QtObject {
         var opts = options || ({})
 
         if (activePanel === name) {
+            // If user invoked toggle from a different focused monitor, move the open panel to that monitor
+            if (shell.focusedScreen && shell.panelScreen !== shell.focusedScreen) {
+                shell.panelScreen = shell.focusedScreen
+                if (name === "launcher" && opts.hasOwnProperty("tab") && shell.activeTab !== opts.tab) {
+                    _applyOpenSideEffects(name, opts)
+                }
+                return
+            }
             if (name === "launcher" && opts.hasOwnProperty("tab") && shell.activeTab !== opts.tab) {
                 _applyOpenSideEffects(name, opts)
                 return

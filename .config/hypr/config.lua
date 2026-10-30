@@ -1,3 +1,4 @@
+package.loaded["monitors"] = nil
 require("monitors")
 
 -------------------------------
@@ -7,6 +8,7 @@ require("monitors")
 hl.env("XDG_CURRENT_DESKTOP", "Hyprland")
 hl.env("XDG_SESSION_DESKTOP", "Hyprland")
 hl.env("XDG_SESSION_TYPE", "wayland")
+hl.env("XDG_MENU_PREFIX", "plasma-")
 
 hl.env("QT_QPA_PLATFORMTHEME", "qt6ct")
 
@@ -63,7 +65,8 @@ hl.config({
     },
 
     input = {
-        kb_layout = "latam",
+        kb_layout = "us",
+	kb_variant = "intl",
 
         follow_mouse = 1,
         mouse_refocus = false,
@@ -85,8 +88,11 @@ hl.config({
         vrr = 1,
         mouse_move_enables_dpms = true,
         key_press_enables_dpms = true,
-        layers_hog_keyboard_focus = true,
         focus_on_activate = true,
+    },
+
+    layers = {
+        layers_hog_keyboard_focus = true,
     },
 
     cursor = {

@@ -17,100 +17,75 @@ Item {
     property var availableDevices: []
     property var connectedDevices: []
 
-    // Helper property to find the primary connected audio device for visual highlights
+    // Helper property to find the primary connected device (preferring audio devices) for visual highlights
     property var primaryConnectedAudioDevice: {
         for (var i = 0; i < devices.length; i++) {
             var dev = devices[i]
-            if (dev.connected && (dev.type === "headphones" || dev.type === "speaker")) {
+            if (dev.connected && (dev.type === "headphones" || dev.type === "speaker" || dev.type === "audio" || dev.type === "headset")) {
                 return dev
+            }
+        }
+        for (var j = 0; j < devices.length; j++) {
+            if (devices[j].connected) {
+                return devices[j]
             }
         }
         return null
     }
 
-    // Initialize/refresh the backend D-Bus listener
-    function refresh() {
+    function sendCommand(cmd) {
         if (!btServiceProc.running) {
             btServiceProc.running = true
         }
+        if (btServiceProc.running) {
+            btServiceProc.write(cmd + "\n")
+        }
     }
 
-    Timer {
-        id: scanTimer
-        interval: 5000
-        repeat: false
-        onTriggered: {
-            if (scanOffProc.running) {
-                scanOffProc.running = false
-            }
-            scanOffProc.running = true
-        }
+    // Initialize/refresh the backend D-Bus listener
+    function refresh() {
+        sendCommand("refresh")
     }
 
     // Controller actions
     function startDiscovery() {
-        if (service.scanning) {
-            console.log("BluetoothService: Scan already active, ignoring request.")
-            return
-        }
-        
-        console.log("BluetoothService: Starting discovery...")
-        if (scanOnProc.running) {
-            scanOnProc.running = false
-        }
-        scanOnProc.running = true
-        scanTimer.restart()
+        service.scanning = true
+        sendCommand("scan")
+    }
+
+    function stopDiscovery() {
+        sendCommand("stop_scan")
     }
 
     function connectDevice(mac) {
         service.connectingMac = mac
-        if (actionProc.running) {
-            actionProc.running = false
-        }
-        actionProc.command = ["bash", "-c", "(echo 'trust " + mac + "'; echo 'connect " + mac + "'; sleep 2; echo 'quit') | bluetoothctl 2>/dev/null"]
-        actionProc.running = true
+        sendCommand("connect|" + mac)
     }
 
     function disconnectDevice(mac) {
-        if (actionProc.running) {
-            actionProc.running = false
-        }
-        actionProc.command = ["bash", "-c", "echo -e 'disconnect " + mac + "\\nquit' | bluetoothctl 2>/dev/null"]
-        actionProc.running = true
+        sendCommand("disconnect|" + mac)
     }
 
     function pairDevice(mac) {
         service.connectingMac = mac
-        if (actionProc.running) {
-            actionProc.running = false
-        }
-        actionProc.command = ["bash", "-c", "echo -e 'pair " + mac + "\\nquit' | bluetoothctl 2>/dev/null; sleep 2; echo -e 'trust " + mac + "\\nquit' | bluetoothctl 2>/dev/null; sleep 1; echo -e 'connect " + mac + "\\nquit' | bluetoothctl 2>/dev/null"]
-        actionProc.running = true
+        sendCommand("pair|" + mac)
     }
 
     function forgetDevice(mac) {
-        if (actionProc.running) {
-            actionProc.running = false
-        }
-        actionProc.command = ["bash", "-c", "echo -e 'remove " + mac + "\\nquit' | bluetoothctl 2>/dev/null"]
-        actionProc.running = true
+        sendCommand("forget|" + mac)
     }
 
     function powerOn() {
-        if (actionProc.running) {
-            actionProc.running = false
-        }
-        actionProc.command = ["bash", "-c", "echo -e 'power on\\nquit' | bluetoothctl 2>/dev/null"]
-        actionProc.running = true
+        service.enabled = true
+        sendCommand("power|true")
     }
 
     function powerOff() {
-        if (actionProc.running) {
-            actionProc.running = false
-        }
-        actionProc.command = ["bash", "-c", "echo -e 'power off\\nquit' | bluetoothctl 2>/dev/null"]
-        actionProc.running = true
+        service.enabled = false
+        sendCommand("power|false")
     }
+
+    property int prevConnectedCount: 0
 
     // Persistent background process listening to D-Bus signals
     Process {
@@ -121,15 +96,18 @@ Item {
             onRead: data => {
                 try {
                     var state = JSON.parse(data.trim())
-                    service.enabled = state.powered
-                    service.scanning = state.discovering
-                    service.devices = state.devices
-                    
+                    service.enabled = Boolean(state.powered)
+                    service.scanning = Boolean(state.discovering)
+                    if (state.connectingMac !== undefined) {
+                        service.connectingMac = state.connectingMac || ""
+                    }
+                    service.devices = state.devices || []
+
                     var paired = []
                     var available = []
                     var connected = []
-                    for (var i = 0; i < state.devices.length; i++) {
-                        var d = state.devices[i]
+                    for (var i = 0; i < service.devices.length; i++) {
+                        var d = service.devices[i]
                         if (d.connected) {
                             connected.push(d)
                         }
@@ -142,6 +120,11 @@ Item {
                     service.pairedDevices = paired
                     service.availableDevices = available
                     service.connectedDevices = connected
+
+                    if (connected.length !== service.prevConnectedCount) {
+                        service.prevConnectedCount = connected.length
+                        audioRefreshTimer.restart()
+                    }
                 } catch (e) {
                     console.warn("Error parsing Bluetooth JSON: " + e)
                 }
@@ -150,26 +133,36 @@ Item {
         stderr: SplitParser {
             onRead: data => console.warn("BluetoothService backend stderr: " + data.trim())
         }
-    }
-
-    // Discovery helpers
-    Process {
-        id: scanOnProc
-        command: ["bluetoothctl", "scan", "on"]
-    }
-
-    Process {
-        id: scanOffProc
-        command: ["bluetoothctl", "scan", "off"]
-    }
-
-    // Actions helper
-    Process {
-        id: actionProc
         onExited: {
-            service.connectingMac = ""
+            btRestartTimer.start()
         }
     }
 
-    Component.onCompleted: refresh()
+    Timer {
+        id: audioRefreshTimer
+        interval: 600
+        repeat: false
+        onTriggered: {
+            if (typeof root !== "undefined" && root.audioService) {
+                root.audioService.refresh()
+            }
+        }
+    }
+
+    Timer {
+        id: btRestartTimer
+        interval: 1000
+        repeat: false
+        onTriggered: {
+            if (!btServiceProc.running) {
+                btServiceProc.running = true
+            }
+        }
+    }
+
+    Component.onCompleted: {
+        if (!btServiceProc.running) {
+            btServiceProc.running = true
+        }
+    }
 }

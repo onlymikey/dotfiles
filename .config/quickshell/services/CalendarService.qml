@@ -6,8 +6,8 @@ Item {
 
     // Reactive properties
     property date today: new Date()
-    property int currentMonth: 0
-    property int currentYear: 2026
+    property int currentMonth: (new Date()).getMonth()
+    property int currentYear: (new Date()).getFullYear()
     property date selectedDate: new Date()
     property var monthGrid: []
 

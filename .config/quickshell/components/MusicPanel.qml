@@ -9,16 +9,19 @@ import "../theme"
 
 PanelWindow {
     id: musicPanel
-    visible: true
+    screen: root.panelScreen
+    visible: root.musicVisible || slideAnim.running
     exclusionMode: ExclusionMode.Ignore
+    WlrLayershell.layer: WlrLayer.Overlay
+    WlrLayershell.namespace: "quickshell"
     anchors { top: true; left: true; right: true }
-    margins { top: root.musicVisible ? 50 : -350; left: 0; right: 0 }
-    implicitWidth: 400
-    implicitHeight: musicPanel.gifSelectorOpen ? 460 : 188
+    margins { top: root.musicVisible ? 50 : -Math.round(480 * UIScale.scale); left: 0; right: 0 }
+    implicitWidth: Math.round(400 * UIScale.scale)
+    implicitHeight: Math.round((musicPanel.gifSelectorOpen ? 460 : 196) * UIScale.scale)
     color: "transparent"
     focusable: true
     WlrLayershell.keyboardFocus: root.musicVisible ? WlrKeyboardFocus.Exclusive : WlrKeyboardFocus.None
-    Behavior on margins.top { NumberAnimation { duration: Animations.normal; easing.type: Easing.OutCubic } }
+    Behavior on margins.top { NumberAnimation { id: slideAnim; duration: Animations.normal; easing.type: Easing.OutCubic } }
 
     property string configPath: root.configPath
     property string gifPath: Resources.gifsPath

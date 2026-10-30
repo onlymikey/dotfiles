@@ -12,16 +12,21 @@ DashboardModule {
     Behavior on implicitHeight { NumberAnimation { duration: Animations.fast; easing.type: Easing.OutCubic } }
 
     property int volVal: root.audioService.volume
+    property int maxVolVal: root.audioService.maxVolume
     property int micVal: root.audioService.sourceVolume
 
-    function getDeviceIcon(name, isInput) {
+    function getDeviceIcon(dev, isInput) {
+        var name = (typeof dev === "object" && dev !== null) ? (dev.name || "") : String(dev || "")
+        var isBt = (typeof dev === "object" && dev !== null) ? Boolean(dev.isBluetooth) : false
         var lower = name.toLowerCase()
         if (isInput) {
+            if (isBt || lower.indexOf("bluetooth") !== -1 || lower.indexOf("bluez") !== -1) return Icons.bluetoothConnected
             if (lower.indexOf("usb") !== -1 || lower.indexOf("headset") !== -1 || lower.indexOf("headphone") !== -1) return Icons.audioDeviceMicrophone
             return Icons.audioDeviceInput
         } else {
+            if (isBt || lower.indexOf("bluetooth") !== -1 || lower.indexOf("bluez") !== -1 || lower.indexOf("echo") !== -1 || lower.indexOf("srs-") !== -1) return Icons.audioDeviceHeadphones
             if (lower.indexOf("hdmi") !== -1 || lower.indexOf("displayport") !== -1 || lower.indexOf("dp") !== -1) return Icons.audioDeviceDisplay
-            if (lower.indexOf("headset") !== -1 || lower.indexOf("headphone") !== -1 || lower.indexOf("auricular") !== -1 || lower.indexOf("bluetooth") !== -1) return Icons.audioDeviceHeadphones
+            if (lower.indexOf("headset") !== -1 || lower.indexOf("headphone") !== -1 || lower.indexOf("auricular") !== -1) return Icons.audioDeviceHeadphones
             if (lower.indexOf("speaker") !== -1 || lower.indexOf("altavoz") !== -1) return Icons.audioDeviceSpeakers
             return Icons.audioVolumeHigh
         }
@@ -33,7 +38,7 @@ DashboardModule {
         anchors.left: parent.left
         anchors.right: parent.right
         anchors.margins: 15
-        spacing: 15
+        spacing: 12
 
         // ================= SPEAKERS / OUTPUT SECTION =================
 
@@ -47,7 +52,7 @@ DashboardModule {
             Text {
                 width: 25
                 text: root.audioService.muted || audioModule.volVal == 0 ? Icons.audioMute : audioModule.volVal < 50 ? Icons.audioVolumeMedium : Icons.audioVolumeHigh
-                color: root.walColor4
+                color: audioModule.volVal > 100 ? root.walColor1 : root.walColor4
                 font.pixelSize: Typography.sizeTitleMedium
                 font.family: Typography.defaultFamily
                 verticalAlignment: Text.AlignVCenter
@@ -69,11 +74,24 @@ DashboardModule {
                 color: Qt.rgba(0, 0, 0, 0.3)
 
                 Rectangle {
-                    width: parent.width * audioModule.volVal / 100
+                    width: Math.min(parent.width, parent.width * (audioModule.volVal / audioModule.maxVolVal))
                     height: parent.height
                     radius: 4
-                    color: root.walColor4
-                    Behavior on width { NumberAnimation { duration: 100 } }
+                    color: audioModule.volVal > 100 ? root.walColor1 : root.walColor4
+                    Behavior on width { NumberAnimation { duration: 60 } }
+                    Behavior on color { ColorAnimation { duration: 150 } }
+                }
+
+                // 100% reference tick when 150% boost is enabled
+                Rectangle {
+                    visible: root.audioService.overamplification
+                    x: parent.width * (100 / 150)
+                    width: 2
+                    height: parent.height + 4
+                    anchors.verticalCenter: parent.verticalCenter
+                    radius: 1
+                    color: root.walColor8
+                    opacity: 0.7
                 }
 
                 MouseArea {
@@ -81,15 +99,15 @@ DashboardModule {
                     cursorShape: Qt.PointingHandCursor
 
                     onClicked: function(mouse) {
-                        var percent = Math.round((mouse.x / parent.width) * 100)
-                        percent = Math.max(0, Math.min(100, percent))
+                        var percent = Math.round((mouse.x / parent.width) * audioModule.maxVolVal)
+                        percent = Math.max(0, Math.min(audioModule.maxVolVal, percent))
                         root.audioService.setVolume(percent)
                     }
 
                     onPositionChanged: function(mouse) {
                         if (pressed) {
-                            var percent = Math.round((mouse.x / parent.width) * 100)
-                            percent = Math.max(0, Math.min(100, percent))
+                            var percent = Math.round((mouse.x / parent.width) * audioModule.maxVolVal)
+                            percent = Math.max(0, Math.min(audioModule.maxVolVal, percent))
                             root.audioService.setVolume(percent)
                         }
                     }
@@ -99,12 +117,62 @@ DashboardModule {
             Text {
                 width: 40
                 text: audioModule.volVal + "%"
-                color: root.walColor8
+                color: audioModule.volVal > 100 ? root.walColor1 : root.walColor8
                 font.pixelSize: Typography.sizeBodySmall
+                font.bold: audioModule.volVal > 100
                 font.family: Typography.defaultFamily
                 horizontalAlignment: Text.AlignRight
                 verticalAlignment: Text.AlignVCenter
                 height: 24
+            }
+        }
+
+        /**
+         * 150% Volume Boost Check Row
+         */
+        RowLayout {
+            width: parent.width
+            spacing: 8
+
+            Rectangle {
+                id: boostCheck
+                width: 18
+                height: 18
+                radius: Radius.small
+                color: root.audioService.overamplification ? root.walColor4 : Qt.rgba(0, 0, 0, 0.35)
+                border.color: root.audioService.overamplification ? root.walColor4 : root.walColor8
+                border.width: 1
+                Behavior on color { ColorAnimation { duration: Animations.fast } }
+
+                Text {
+                    anchors.centerIn: parent
+                    visible: root.audioService.overamplification
+                    text: Icons.check
+                    color: root.walBackground
+                    font.pixelSize: Typography.sizeTiny
+                    font.bold: true
+                    font.family: Typography.defaultFamily
+                }
+
+                MouseArea {
+                    anchors.fill: parent
+                    cursorShape: Qt.PointingHandCursor
+                    onClicked: root.audioService.toggleOveramplification()
+                }
+            }
+
+            Text {
+                Layout.fillWidth: true
+                text: I18n.s.dash_overamp
+                color: root.audioService.overamplification ? root.walForeground : root.walColor8
+                font.pixelSize: Typography.sizeCaption
+                font.family: Typography.defaultFamily
+
+                MouseArea {
+                    anchors.fill: parent
+                    cursorShape: Qt.PointingHandCursor
+                    onClicked: root.audioService.toggleOveramplification()
+                }
             }
         }
 
@@ -117,7 +185,7 @@ DashboardModule {
             visible: root.audioService.outputs.length > 0
 
             Text {
-                text: "Dispositivo de Salida"
+                text: I18n.s.dash_audio_out
                 color: root.walColor8
                 font.pixelSize: Typography.sizeBodySmall
                 font.family: Typography.defaultFamily
@@ -148,7 +216,7 @@ DashboardModule {
                         Layout.leftMargin: 12
                         text: {
                             var def = root.audioService.defaultOutput
-                            return def ? getDeviceIcon(def.name, false) + "  " + def.name : "Seleccionar dispositivo..."
+                            return def ? getDeviceIcon(def, false) + "  " + def.name : "Seleccionar dispositivo..."
                         }
                         color: root.walForeground
                         font.pixelSize: Typography.sizeBodySmall
@@ -169,6 +237,7 @@ DashboardModule {
                     anchors.fill: outputHeader
                     cursorShape: Qt.PointingHandCursor
                     onClicked: {
+                        if (!outputDropdown.expanded) root.audioService.refresh()
                         outputDropdown.expanded = !outputDropdown.expanded
                         if (outputDropdown.expanded) inputDropdown.expanded = false
                     }
@@ -184,7 +253,7 @@ DashboardModule {
                     clip: true
 
                     delegate: Rectangle {
-                        width: parent.width
+                        width: outputsList.width
                         height: 30
                         color: outItemMA.containsMouse ? Qt.rgba(1, 1, 1, 0.05) : "transparent"
 
@@ -196,7 +265,7 @@ DashboardModule {
 
                             Text {
                                 Layout.fillWidth: true
-                                text: getDeviceIcon(modelData.name, false) + "  " + modelData.name
+                                text: getDeviceIcon(modelData, false) + "  " + modelData.name
                                 color: modelData.isDefault ? root.walColor4 : root.walForeground
                                 font.pixelSize: Typography.sizeBodySmall
                                 font.bold: modelData.isDefault
@@ -262,11 +331,11 @@ DashboardModule {
                 color: Qt.rgba(0, 0, 0, 0.3)
 
                 Rectangle {
-                    width: parent.width * audioModule.micVal / 100
+                    width: Math.min(parent.width, parent.width * audioModule.micVal / 100)
                     height: parent.height
                     radius: 4
                     color: root.walColor13
-                    Behavior on width { NumberAnimation { duration: 100 } }
+                    Behavior on width { NumberAnimation { duration: 60 } }
                 }
 
                 MouseArea {
@@ -310,7 +379,7 @@ DashboardModule {
             visible: root.audioService.inputs.length > 0
 
             Text {
-                text: "Dispositivo de Entrada"
+                text: I18n.s.dash_audio_in
                 color: root.walColor8
                 font.pixelSize: Typography.sizeBodySmall
                 font.family: Typography.defaultFamily
@@ -341,7 +410,7 @@ DashboardModule {
                         Layout.leftMargin: 12
                         text: {
                             var def = root.audioService.defaultInput
-                            return def ? getDeviceIcon(def.name, true) + "  " + def.name : "Seleccionar dispositivo..."
+                            return def ? getDeviceIcon(def, true) + "  " + def.name : "Seleccionar dispositivo..."
                         }
                         color: root.walForeground
                         font.pixelSize: Typography.sizeBodySmall
@@ -362,6 +431,7 @@ DashboardModule {
                     anchors.fill: inputHeader
                     cursorShape: Qt.PointingHandCursor
                     onClicked: {
+                        if (!inputDropdown.expanded) root.audioService.refresh()
                         inputDropdown.expanded = !inputDropdown.expanded
                         if (inputDropdown.expanded) outputDropdown.expanded = false
                     }
@@ -377,7 +447,7 @@ DashboardModule {
                     clip: true
 
                     delegate: Rectangle {
-                        width: parent.width
+                        width: inputsList.width
                         height: 30
                         color: inItemMA.containsMouse ? Qt.rgba(1, 1, 1, 0.05) : "transparent"
 
@@ -389,7 +459,7 @@ DashboardModule {
 
                             Text {
                                 Layout.fillWidth: true
-                                text: getDeviceIcon(modelData.name, true) + "  " + modelData.name
+                                text: getDeviceIcon(modelData, true) + "  " + modelData.name
                                 color: modelData.isDefault ? root.walColor13 : root.walForeground
                                 font.pixelSize: Typography.sizeBodySmall
                                 font.bold: modelData.isDefault
@@ -489,6 +559,4 @@ DashboardModule {
             }
         }
     }
-
-
 }

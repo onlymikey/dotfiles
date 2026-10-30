@@ -8,17 +8,20 @@ import "../theme"
 
 PanelWindow {
     id: calPanel
-    visible: true
+    screen: root.panelScreen
+    visible: root.calendarVisible || slideAnim.running
     exclusionMode: ExclusionMode.Ignore
+    WlrLayershell.layer: WlrLayer.Overlay
+    WlrLayershell.namespace: "quickshell"
     anchors { top: true; left: true; right: true }
-    margins { top: root.calendarVisible ? 40 : -450; left: 0; right: 0 }
-    implicitHeight: 395
+    margins { top: root.calendarVisible ? 40 : -Math.round(450 * UIScale.scale); left: 0; right: 0 }
+    implicitHeight: Math.round(405 * UIScale.scale)
     color: "transparent"
 
     focusable: true
     WlrLayershell.keyboardFocus: root.calendarVisible ? WlrKeyboardFocus.Exclusive : WlrKeyboardFocus.None
 
-    Behavior on margins.top { NumberAnimation { duration: Animations.normal; easing.type: Easing.OutCubic } }
+    Behavior on margins.top { NumberAnimation { id: slideAnim; duration: Animations.normal; easing.type: Easing.OutCubic } }
 
     Connections {
         target: root
@@ -140,7 +143,7 @@ PanelWindow {
                     spacing: 0
                     
                     Repeater {
-                        model: ["Mo", "Tu", "We", "Th", "Fr", "Sa", "Su"]
+                        model: I18n.s.cal_days
                         delegate: Text {
                             Layout.fillWidth: true
                             horizontalAlignment: Text.AlignHCenter
@@ -217,7 +220,7 @@ PanelWindow {
                     spacing: 6
                     
                     Text {
-                        text: "Events"
+                        text: I18n.s.cal_events
                         color: root.walColor8
                         font.pixelSize: Typography.sizeBodySmall
                         font.bold: true
@@ -243,7 +246,7 @@ PanelWindow {
                                 font.family: Typography.defaultFamily
                             }
                             Text {
-                                text: "No events scheduled"
+                                text: I18n.s.cal_no_events
                                 color: root.walColor8
                                 font.pixelSize: Typography.sizeSmall
                                 font.family: Typography.defaultFamily
@@ -283,7 +286,7 @@ PanelWindow {
     }
 
     function getWordMonth(monthInt) {
-        var months = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"]
+        var months = I18n.s.cal_months || []
         return months[monthInt] || ""
     }
 }

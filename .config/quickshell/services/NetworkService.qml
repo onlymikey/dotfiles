@@ -17,16 +17,19 @@ Item {
     property var vpnConnections: []
     property bool airplaneMode: false
 
-    // Initialize / restart the backend process if needed
+    // Initialize / refresh the backend process
     function refresh() {
         if (!netServiceProc.running) {
             netServiceProc.running = true
+        } else {
+            netServiceProc.write("refresh\n")
         }
     }
 
     // Controller actions written directly to the D-Bus daemon's stdin
     function scan() {
         if (netServiceProc.running) {
+            service.wifiScanning = true
             netServiceProc.write("scan\n")
         }
     }
@@ -51,6 +54,7 @@ Item {
     }
 
     function toggleWifi(enabled) {
+        service.wifiEnabled = enabled
         if (netServiceProc.running) {
             netServiceProc.write("toggle_wifi|" + (enabled ? "true" : "false") + "\n")
         }
@@ -63,6 +67,11 @@ Item {
     }
 
     function toggleAutoconnect(ssid, enabled) {
+        if (service.connectedNetwork && service.connectedNetwork.ssid === ssid) {
+            var updated = Object.assign({}, service.connectedNetwork)
+            updated.autoconnect = enabled
+            service.connectedNetwork = updated
+        }
         if (netServiceProc.running) {
             netServiceProc.write("toggle_autoconnect|" + ssid + "|" + (enabled ? "true" : "false") + "\n")
         }
@@ -77,15 +86,16 @@ Item {
             onRead: data => {
                 try {
                     var state = JSON.parse(data.trim())
-                    service.wifiEnabled = state.wifiEnabled
-                    service.ethernetEnabled = state.ethernetEnabled
-                    service.wifiScanning = state.wifiScanning
-                    service.connectedNetwork = state.connectedNetwork
-                    service.availableNetworks = state.availableNetworks
-                    service.savedNetworks = state.savedNetworks
-                    service.ethernetDevices = state.ethernetDevices
-                    service.vpnConnections = state.vpnConnections
-                    service.airplaneMode = state.airplaneMode
+                    if (state.wifiEnabled === undefined) return
+                    service.wifiEnabled = Boolean(state.wifiEnabled)
+                    service.ethernetEnabled = Boolean(state.ethernetEnabled)
+                    service.wifiScanning = Boolean(state.wifiScanning)
+                    service.connectedNetwork = state.connectedNetwork || null
+                    service.availableNetworks = state.availableNetworks || []
+                    service.savedNetworks = state.savedNetworks || []
+                    service.ethernetDevices = state.ethernetDevices || []
+                    service.vpnConnections = state.vpnConnections || []
+                    service.airplaneMode = Boolean(state.airplaneMode)
                 } catch (e) {
                     console.warn("Error parsing Network JSON: " + e)
                 }
@@ -94,7 +104,25 @@ Item {
         stderr: SplitParser {
             onRead: data => console.warn("NetworkService backend stderr: " + data.trim())
         }
+        onExited: {
+            netRestartTimer.start()
+        }
     }
 
-    Component.onCompleted: refresh()
+    Timer {
+        id: netRestartTimer
+        interval: 1000
+        repeat: false
+        onTriggered: {
+            if (!netServiceProc.running) {
+                netServiceProc.running = true
+            }
+        }
+    }
+
+    Component.onCompleted: {
+        if (!netServiceProc.running) {
+            netServiceProc.running = true
+        }
+    }
 }

@@ -5,7 +5,7 @@ return {
 
     launcher = "qs ipc call launcher toggle",
 
-    browser = "brave",
+    browser = "zen-browser",
 
-    file_manager = "thunar",
+    file_manager = "dolphin",
 }
