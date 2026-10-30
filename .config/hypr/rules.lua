@@ -20,12 +20,14 @@ hl.window_rule({
 })
 
 hl.window_rule({
-    name = "center-floats",
+    name = "scrcpy",
     match = {
-        float = true
+        title = "^scrcpy.*"
     },
 
+    float = true,
     center = true,
+    size = "440 920",
 })
 
 local opacity_rules = {

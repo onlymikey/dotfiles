@@ -10,19 +10,28 @@ import "../theme"
 
 PanelWindow {
     id: bar
-    visible: true
-    exclusionMode: ExclusionMode.Exclusive
-    WlrLayershell.layer: WlrLayer.Top
+    screen: root.barScreen
+    readonly property string screenName: bar.screen ? bar.screen.name : (Quickshell.screens.length > 0 ? Quickshell.screens[0].name : "DP-3")
+    readonly property var hyprMonitor: Hyprland.monitorFor(bar.screen)
+    readonly property bool hasFullscreen: {
+        if (root.fullscreenByMonitor && root.fullscreenByMonitor.hasOwnProperty(bar.screenName)) {
+            return !!root.fullscreenByMonitor[bar.screenName]
+        }
+        return hyprMonitor && hyprMonitor.activeWorkspace ? hyprMonitor.activeWorkspace.hasFullscreen : false
+    }
+    visible: !bar.hasFullscreen || root.anyPanelOpen || root.barForceVisible
+    exclusionMode: bar.hasFullscreen ? ExclusionMode.Ignore : ExclusionMode.Auto
+    WlrLayershell.layer: (bar.hasFullscreen && (root.anyPanelOpen || root.barForceVisible)) ? WlrLayer.Overlay : WlrLayer.Top
     WlrLayershell.namespace: "quickshell"
     anchors { top: true; left: true; right: true }
     margins { top: 0; left: 0; right: 0 }
-    implicitHeight: 32
+    implicitHeight: Math.round(32 * UIScale.scale)
     color: "transparent"
 
     property color notchColor: Qt.rgba(0, 0, 0, 0.38)
     property color notchHoverColor: Qt.rgba(0, 0, 0, 0.52)
-    property int notchRadius: 12
-    property int notchHeight: 32
+    property int notchRadius: Radius.large
+    property int notchHeight: Math.round(32 * UIScale.scale)
 
     property int activeWsId: 1
     property int targetWsId: 1
@@ -34,13 +43,15 @@ PanelWindow {
     property bool volumeMuted: root.audioService.muted
     property string volumeStr: volumeMuted ? Icons.audioMute + " mute" : (volumePercent > 50 ? Icons.audioVolumeHigh : (volumePercent > 0 ? Icons.audioVolumeMedium : Icons.audioVolumeLow)) + " " + volumePercent + "%"
     property bool wifiConnected: root.networkService.connectedNetwork !== null
+    property bool ethernetConnected: root.networkService.ethernetEnabled
     property string wifiSSID: root.networkService.connectedNetwork ? root.networkService.connectedNetwork.ssid : ""
     property int wifiStrength: root.networkService.connectedNetwork ? root.networkService.connectedNetwork.signal : 0
     property bool btConnected: root.bluetoothService.connectedDevices.length > 0
-    property int batteryPercent: 0
-    property bool batteryCharging: false
-    property string batteryClass: ""
-    property string batteryTime: ""
+    property bool btEnabled: root.bluetoothService.enabled
+    property int batteryPercent: root.batteryService.capacity
+    property bool batteryCharging: root.batteryService.isCharging
+    property string batteryClass: root.batteryService.batteryClass
+    property string batteryTime: root.batteryService.timeRemaining
     property var cavaValues: [0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1]
     property real chargingPulse: 1.0
     property real chargingFillAnim: 0.0
@@ -186,39 +197,9 @@ PanelWindow {
     }
 
     function adjustVolume(delta) {
-        var nextVolume = Math.max(0, Math.min(100, bar.volumePercent + delta))
+        var nextVolume = Math.max(0, Math.min(root.audioService.maxVolume, bar.volumePercent + delta))
         root.audioService.setVolume(nextVolume)
     }
-
-
-
-    Timer {
-        interval: 30000
-        running: true
-        repeat: true
-        triggeredOnStart: true
-        onTriggered: { if (!batteryProc.running) batteryProc.running = true }
-    }
-
-    Process {
-        id: batteryProc
-        command: ["bash", "-c", "cap=$(cat /sys/class/power_supply/BAT*/capacity 2>/dev/null | head -1); status=$(cat /sys/class/power_supply/BAT*/status 2>/dev/null | head -1); time=''; if command -v upower >/dev/null 2>&1; then if [ \"$status\" = \"Discharging\" ]; then time=$(upower -i $(upower -e | grep BAT) 2>/dev/null | grep 'time to empty' | awk '{print $4 $5}'); elif [ \"$status\" = \"Charging\" ]; then time=$(upower -i $(upower -e | grep BAT) 2>/dev/null | grep 'time to full' | awk '{print $4 $5}'); fi; fi; [ -z \"$cap\" ] && cap=0; echo \"$cap|$status|$time\""]
-        stdout: SplitParser {
-            onRead: data => {
-                var parts = data.trim().split("|")
-                bar.batteryPercent = parseInt(parts[0]) || 0
-                var status = parts.length > 1 ? parts[1] : ""
-                bar.batteryCharging = status === "Charging"
-                bar.batteryTime = parts.length > 2 ? parts[2] : ""
-                if (bar.batteryCharging) bar.batteryClass = "charging"
-                else if (bar.batteryPercent <= 10) bar.batteryClass = "critical"
-                else if (bar.batteryPercent <= 25) bar.batteryClass = "warning"
-                else bar.batteryClass = ""
-            }
-        }
-    }
-
-
 
     Process {
         id: mediaPlayPauseProc
@@ -312,7 +293,7 @@ PanelWindow {
             Notch {
                 width: 36
                 hovered: appsMA.containsMouse
-                tooltip: "Apps / Wallpapers"
+                tooltip: I18n.isSpanish ? "Lanzador de aplicaciones" : "Apps / Wallpapers"
 
                 Item {
                     anchors.fill: parent
@@ -467,6 +448,64 @@ PanelWindow {
                                     }
                                 }
                             }
+                        }
+                    }
+                }
+            }
+
+            // Phone / Connected Devices Notch
+            Notch {
+                id: phoneNotch
+                width: 36
+                hovered: phoneMA.containsMouse
+                tooltip: {
+                    if (!root.phoneService || !root.phoneService.hasDevice) return I18n.s.cd_title + " (" + I18n.s.cd_offline + ")"
+                    var t = root.phoneService.deviceName
+                    if (root.phoneService.connected) {
+                        t += " · " + (root.phoneService.batteryLevel >= 0 ? root.phoneService.batteryLevel + "%" : "")
+                    }
+                    return t
+                }
+
+                Item {
+                    anchors.fill: parent
+
+                    Text {
+                        anchors.centerIn: parent
+                        text: Icons.phone
+                        color: (root.phoneService && root.phoneService.connected) ? root.walColor2 : root.walColor8
+                        font.pixelSize: Typography.sizeTitleSmall
+                        font.family: Typography.defaultFamily
+                    }
+
+                    Rectangle {
+                        anchors.top: parent.top
+                        anchors.right: parent.right
+                        anchors.topMargin: 7
+                        anchors.rightMargin: 7
+                        width: 5
+                        height: 5
+                        radius: 2.5
+                        color: root.walColor2
+                        visible: root.phoneService && root.phoneService.connected
+                    }
+                }
+
+                MouseArea {
+                    id: phoneMA
+                    anchors.fill: parent
+                    hoverEnabled: true
+                    cursorShape: Qt.PointingHandCursor
+                    acceptedButtons: Qt.LeftButton | Qt.RightButton
+                    onClicked: function(mouse) {
+                        if (mouse.button === Qt.RightButton) {
+                            if (root.phoneService && root.phoneService.canScrcpy) {
+                                root.phoneService.toggleScrcpy()
+                            } else {
+                                root.panelManager.toggle("phone")
+                            }
+                        } else {
+                            root.panelManager.toggle("phone")
                         }
                     }
                 }
@@ -671,7 +710,11 @@ PanelWindow {
                 width: notifContent.width + 24
                 visible: true
                 hovered: notifMA.containsMouse
-                tooltip: root.notificationService.dnd ? "Do Not Disturb Enabled" : (root.notificationService.unreadCount > 0 ? root.notificationService.unreadCount + " unread notifications" : "No unread notifications")
+                tooltip: root.notificationService.dnd
+                         ? (I18n.isSpanish ? "Modo No Molestar activado" : "Do Not Disturb Enabled")
+                         : (root.notificationService.unreadCount > 0
+                            ? root.notificationService.unreadCount + (I18n.isSpanish ? " notificaciones sin leer" : " unread notifications")
+                            : (I18n.isSpanish ? "Sin notificaciones nuevas" : "No unread notifications"))
 
                 Item {
                     anchors.fill: parent
@@ -837,8 +880,8 @@ PanelWindow {
                                 }
                                 
                                 color: "transparent"
-                                width: tooltipRect.width
-                                height: tooltipRect.height
+                                implicitWidth: tooltipRect.width
+                                implicitHeight: tooltipRect.height
                                 
                                 Rectangle {
                                     id: tooltipRect
@@ -1030,8 +1073,21 @@ PanelWindow {
                 tooltip: {
                     var t = ""
                     if (bar.wifiConnected) t += bar.wifiSSID + " (" + bar.wifiStrength + "%)"
-                    else t += "Not connected"
-                    t += "\nBluetooth: " + (bar.btConnected ? "Connected" : "Off")
+                    else if (bar.ethernetConnected) t += "Ethernet Connected"
+                    else if (root.wifiEnabled) t += "Wi-Fi: Disconnected"
+                    else t += "Wi-Fi: Off"
+
+                    if (bar.btConnected) {
+                        var names = []
+                        for (var i = 0; i < root.bluetoothService.connectedDevices.length; i++) {
+                            names.push(root.bluetoothService.connectedDevices[i].name)
+                        }
+                        t += "\nBluetooth: " + names.join(", ")
+                    } else if (bar.btEnabled) {
+                        t += "\nBluetooth: On"
+                    } else {
+                        t += "\nBluetooth: Off"
+                    }
                     return t
                 }
 
@@ -1046,13 +1102,16 @@ PanelWindow {
                         Text {
                             anchors.verticalCenter: parent.verticalCenter
                             text: {
-                                if (!bar.wifiConnected) return Icons.wifiSignal0
-                                if (bar.wifiStrength > 75) return Icons.wifiSignal4
-                                if (bar.wifiStrength > 50) return Icons.wifiSignal3
-                                if (bar.wifiStrength > 25) return Icons.wifiSignal2
-                                return Icons.wifiSignal1
+                                if (bar.wifiConnected) {
+                                    if (bar.wifiStrength > 75) return Icons.wifiSignal4
+                                    if (bar.wifiStrength > 50) return Icons.wifiSignal3
+                                    if (bar.wifiStrength > 25) return Icons.wifiSignal2
+                                    return Icons.wifiSignal1
+                                }
+                                if (bar.ethernetConnected) return Icons.wifiEthernet
+                                return Icons.wifiSignal0
                             }
-                            color: bar.wifiConnected ? root.walColor2 : root.walColor8
+                            color: (bar.wifiConnected || bar.ethernetConnected) ? root.walColor2 : root.walColor8
                             font.pixelSize: Typography.sizeBodyLarge
                             font.family: Typography.defaultFamily
 
@@ -1061,8 +1120,8 @@ PanelWindow {
 
                         Text {
                             anchors.verticalCenter: parent.verticalCenter
-                            text: bar.btConnected ? Icons.bluetoothConnected : Icons.bluetoothDisabled
-                            color: bar.btConnected ? root.walColor5 : root.walColor8
+                            text: bar.btConnected ? Icons.bluetoothConnected : (bar.btEnabled ? Icons.bluetoothEnabled : Icons.bluetoothDisabled)
+                            color: bar.btConnected ? root.walColor5 : (bar.btEnabled ? root.walForeground : root.walColor8)
                             font.pixelSize: Typography.sizeBodyMedium
                             font.family: Typography.defaultFamily
 
@@ -1089,7 +1148,7 @@ PanelWindow {
             Notch {
                 width: 36
                 hovered: dashMA.containsMouse
-                tooltip: "Dashboard"
+                tooltip: I18n.s.dash_title
 
                 Item {
                     anchors.fill: parent

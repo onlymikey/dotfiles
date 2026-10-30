@@ -20,8 +20,12 @@ hl.bind(mod .. " + R",
 hl.bind(mod .. " + Q",
     hl.dsp.window.close())
 
--- Toggle floating
+-- Fullscreen
 hl.bind(mod .. " + F",
+    hl.dsp.window.fullscreen())
+
+-- Toggle floating
+hl.bind(mod .. " + SHIFT + F",
     hl.dsp.window.float({ action = "toggle" }))
 
 -- Wallpaper menu
@@ -47,6 +51,24 @@ hl.bind(mod .. " + M",
 -- Notifications
 hl.bind(mod .. " + N",
     hl.dsp.exec_cmd("qs ipc call notifications toggle"))
+
+-- Settings / Configuración
+hl.bind(mod .. " + I",
+    hl.dsp.exec_cmd("qs ipc call settings toggle"))
+
+-- Monitors & Displays (abre directo la pestaña de pantallas)
+hl.bind(mod .. " + P",
+    hl.dsp.exec_cmd("qs ipc call monitors toggle"))
+
+hl.bind("XF86Display",
+    hl.dsp.exec_cmd("qs ipc call monitors toggle"))
+
+-- Connected Devices (Android Integration)
+hl.bind(mod .. " + C",
+    hl.dsp.exec_cmd("qs ipc call phone toggle"))
+
+hl.bind(mod .. " + SHIFT + C",
+    hl.dsp.exec_cmd("qs ipc call phone scrcpy"))
 
 ---------------------
 ---- FOCUSING -------
@@ -132,39 +154,27 @@ hl.bind(
 
 
 hl.bind(
-    "F1",
-    hl.dsp.exec_cmd("amixer set Master toggle"),
-    { locked = true, repeating = true }
-)
-
-hl.bind(
-    "F2",
-    hl.dsp.exec_cmd("amixer set Master 1%-"),
-    { locked = true, repeating = true }
-)
-
-hl.bind(
-    "F3",
-    hl.dsp.exec_cmd("amixer set Master 1%+"),
-    { locked = true, repeating = true }
-)
-
-hl.bind(
     "XF86AudioMute",
-    hl.dsp.exec_cmd("amixer set Master toggle"),
-    { locked = true, repeating = true }
+    hl.dsp.exec_cmd("wpctl set-mute @DEFAULT_AUDIO_SINK@ toggle"),
+    { locked = true }
 )
 
 hl.bind(
     "XF86AudioLowerVolume",
-    hl.dsp.exec_cmd("amixer set Master 1%-"),
+    hl.dsp.exec_cmd("bash -c 'lim=1.0; [ \"$(cat ~/.config/quickshell/state/volume_boost 2>/dev/null)\" = \"true\" ] && lim=1.5; wpctl set-volume -l $lim @DEFAULT_AUDIO_SINK@ 2%-'"),
     { locked = true, repeating = true }
 )
 
 hl.bind(
     "XF86AudioRaiseVolume",
-    hl.dsp.exec_cmd("amixer set Master 1%+"),
+    hl.dsp.exec_cmd("bash -c 'lim=1.0; [ \"$(cat ~/.config/quickshell/state/volume_boost 2>/dev/null)\" = \"true\" ] && lim=1.5; wpctl set-volume -l $lim @DEFAULT_AUDIO_SINK@ 2%+'"),
     { locked = true, repeating = true }
+)
+
+hl.bind(
+    "XF86AudioMicMute",
+    hl.dsp.exec_cmd("wpctl set-mute @DEFAULT_AUDIO_SOURCE@ toggle"),
+    { locked = true }
 )
 
 hl.bind(
