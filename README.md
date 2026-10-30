@@ -19,8 +19,6 @@ I do not want to take full credit for this project, as the gorgeous foundation b
 *   **Launcher**: Fast application launcher with instant automatic reload on changes.
 *   **Wi-Fi & Bluetooth**: Interactive lists to connect to networks and devices.
 *   **Calendar & Clipboard**: Simple calendar panel and clipboard manager using `cliphist`.
-*   **Session Restore**: Saves window position, size, workspace, and layout when shutting down, restoring them dynamically on login.
-*   **Systemd Integration**: Optional `--user` service to automatically capture layout states on shutdown/logout.
 *   **Responsive Layout**: Relative typography and spacing units inspired by KDE Kirigami.
 
 ---
