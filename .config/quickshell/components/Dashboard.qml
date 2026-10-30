@@ -21,15 +21,18 @@ import "../theme"
  */
 PanelWindow {
     id: dashboard
-    visible: true
+    screen: root.panelScreen
+    visible: root.dashboardVisible || slideAnim.running
     exclusionMode: ExclusionMode.Ignore
+    WlrLayershell.layer: WlrLayer.Overlay
+    WlrLayershell.namespace: "quickshell"
     anchors { top: true; bottom: true; right: true }
-    margins { top: 40; bottom: 10; right: root.dashboardVisible ? 6 : -450 }
-    implicitWidth: 420
+    margins { top: 40; bottom: 10; right: root.dashboardVisible ? 6 : -Math.round(460 * UIScale.scale) }
+    implicitWidth: Math.round(420 * UIScale.scale)
     color: "transparent"
     focusable: true
     WlrLayershell.keyboardFocus: root.dashboardVisible ? WlrKeyboardFocus.Exclusive : WlrKeyboardFocus.None
-    Behavior on margins.right { NumberAnimation { duration: Animations.normal; easing.type: Easing.OutCubic } }
+    Behavior on margins.right { NumberAnimation { id: slideAnim; duration: Animations.normal; easing.type: Easing.OutCubic } }
 
     Connections {
         target: root
