@@ -9,16 +9,19 @@ import "../theme"
 
 PanelWindow {
     id: launcherPanel
-    visible: true
+    screen: root.panelScreen
+    visible: root.launcherVisible || slideAnim.running
     exclusionMode: ExclusionMode.Ignore
+    WlrLayershell.layer: WlrLayer.Overlay
+    WlrLayershell.namespace: "quickshell"
     anchors { top: true; bottom: true; left: true }
-    margins { top: 40; bottom: 10; left: root.launcherVisible ? 6 : -450 }
-    implicitWidth: 420
+    margins { top: 40; bottom: 10; left: root.launcherVisible ? 6 : -Math.round(460 * UIScale.scale) }
+    implicitWidth: Math.round(420 * UIScale.scale)
     color: "transparent"
     focusable: true
     property int kbFocusMode: root.launcherVisible ? WlrKeyboardFocus.Exclusive : WlrKeyboardFocus.None
     WlrLayershell.keyboardFocus: kbFocusMode
-    Behavior on margins.left { NumberAnimation { duration: Animations.normal; easing.type: Easing.OutCubic } }
+    Behavior on margins.left { NumberAnimation { id: slideAnim; duration: Animations.normal; easing.type: Easing.OutCubic } }
 
     Rectangle {
         anchors.fill: parent
@@ -55,7 +58,7 @@ PanelWindow {
                                 font.family: Typography.defaultFamily
                             }
                             Text {
-                                text: "Apps"
+                                text: I18n.s.launcher_tab_apps
                                 color: root.activeTab === 0 ? root.walColor5 : root.walColor8
                                 font.pixelSize: Typography.sizeBodyMedium
                                 font.bold: root.activeTab === 0
@@ -87,7 +90,7 @@ PanelWindow {
                                 font.family: Typography.defaultFamily
                             }
                             Text {
-                                text: "Walls"
+                                text: I18n.s.launcher_tab_walls
                                 color: root.activeTab === 1 ? root.walColor13 : root.walColor8
                                 font.pixelSize: Typography.sizeBodyMedium
                                 font.bold: root.activeTab === 1
@@ -127,7 +130,7 @@ PanelWindow {
                             }
 
                             Text {
-                                text: "Clipboard"
+                                text: I18n.s.launcher_tab_clipboard
                                 color: root.activeTab === 2 ? root.walColor2 : root.walColor8
                                 font.pixelSize: Typography.sizeBodyMedium
                                 font.bold: root.activeTab === 2
@@ -192,7 +195,7 @@ PanelWindow {
                                 selectByMouse: true
                                 clip: true
                                 Text {
-                                    text: "Search apps..."
+                                    text: I18n.s.launcher_search_apps
                                     color: root.walColor8
                                     visible: !parent.text
                                     anchors.left: parent.left
@@ -348,18 +351,28 @@ PanelWindow {
                                         radius: Radius.mediumSmall
                                         color: Qt.rgba(0, 0, 0, 0.2)
                                         Image {
+                                            id: appIconImg
                                             anchors.centerIn: parent
                                             width: 22
                                             height: 22
+                                            visible: status === Image.Ready
                                             source: {
                                                 var icon = modelData.icon
-                                                if (!icon || icon === "") return "image://icon/application-x-executable"
+                                                if (!icon || icon === "") return ""
                                                 if (icon.indexOf("/") === 0) return "file://" + icon
                                                 return "image://icon/" + icon
                                             }
                                             fillMode: Image.PreserveAspectFit
                                             asynchronous: true
                                             cache: true
+                                        }
+                                        Text {
+                                            anchors.centerIn: parent
+                                            visible: appIconImg.status !== Image.Ready
+                                            text: Icons.launcherTabApps
+                                            color: root.walColor5
+                                            font.pixelSize: Typography.sizeBodyLarge
+                                            font.family: Typography.defaultFamily
                                         }
                                     }
                                     ColumnLayout {
@@ -414,7 +427,7 @@ PanelWindow {
                         Text {
                             anchors.centerIn: parent
                             visible: root.filteredApps.length === 0
-                            text: "No apps found"
+                            text: I18n.s.launcher_no_apps
                             color: root.walColor8
                             font.pixelSize: Typography.sizeBodyLarge
                             font.family: Typography.defaultFamily
@@ -477,7 +490,7 @@ PanelWindow {
                                 selectByMouse: true
                                 clip: true
                                 Text {
-                                    text: "Search wallpapers..."
+                                    text: I18n.s.launcher_search_walls
                                     color: root.walColor8
                                     visible: !parent.text
                                     anchors.left: parent.left
@@ -769,9 +782,8 @@ PanelWindow {
                 }
             }
             ColumnLayout {
-                anchors.fill: parent
-                anchors.margins: 0
-                anchors.topMargin: 57
+                Layout.fillWidth: true
+                Layout.fillHeight: true
                 spacing: 15
 
                 visible: root.activeTab === 2
@@ -834,7 +846,7 @@ PanelWindow {
                             clip: true
 
                             Text {
-                                text: "Search clipboard..."
+                                text: I18n.s.launcher_search_clipboard
                                 color: root.walColor8
                                 visible: !parent.text
                                 anchors.left: parent.left
@@ -1060,7 +1072,7 @@ PanelWindow {
 
                         visible: root.filteredClipboardHistory.length === 0
 
-                        text: "Clipboard empty"
+                        text: I18n.s.launcher_no_clipboard
 
                         color: root.walColor8
 

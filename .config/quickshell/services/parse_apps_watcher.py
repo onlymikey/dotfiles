@@ -29,32 +29,32 @@ if fd < 0:
     print("Error: inotify_init failed", file=sys.stderr)
     sys.exit(1)
 
-# Paths to watch
-paths = ["/usr/share/applications"]
-user_apps = os.path.expanduser("~/.local/share/applications")
+home = os.path.expanduser("~")
+candidate_paths = [
+    "/usr/share/applications",
+    "/usr/local/share/applications",
+    "/var/lib/flatpak/exports/share/applications",
+    os.path.join(home, ".local/share/flatpak/exports/share/applications"),
+    os.path.join(home, ".local/share/applications"),
+    os.path.join(home, "Applications"),
+]
 
-# Ensure user directory exists so we can watch it
+user_apps = os.path.join(home, ".local/share/applications")
 if not os.path.exists(user_apps):
     try:
         os.makedirs(user_apps, exist_ok=True)
     except Exception:
         pass
 
-if os.path.exists(user_apps):
-    paths.append(user_apps)
-
-# Add watches
 wds = {}
-for p in paths:
-    wd = libc.inotify_add_watch(fd, p.encode('utf-8'), MASK)
-    if wd >= 0:
-        wds[wd] = p
-    else:
-        print(f"Warning: could not watch {p}", file=sys.stderr)
+for p in candidate_paths:
+    if os.path.isdir(p):
+        wd = libc.inotify_add_watch(fd, p.encode("utf-8"), MASK)
+        if wd >= 0:
+            wds[wd] = p
 
 print("APPS_WATCHER_READY", flush=True)
 
-# Select loop to wait for events
 while True:
     try:
         r, _, _ = select.select([fd], [], [])
@@ -62,7 +62,6 @@ while True:
             data = os.read(fd, 4096)
             if not data:
                 break
-            # Signal a change to Quickshell
             print("change", flush=True)
     except KeyboardInterrupt:
         break
