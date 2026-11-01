@@ -85,7 +85,7 @@ hl.config({
         disable_hyprland_logo = true,
         animate_manual_resizes = true,
         animate_mouse_windowdragging = true,
-        vrr = 1,
+        vrr = 2,
         mouse_move_enables_dpms = true,
         key_press_enables_dpms = true,
         focus_on_activate = true,
